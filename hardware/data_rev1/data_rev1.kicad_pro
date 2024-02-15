@@ -479,6 +479,18 @@
     [
       "fa6829fa-bbc1-45d3-82a1-c2163374352a",
       ""
+    ],
+    [
+      "a8f2f202-932f-4d50-baca-4d48db98fd4c",
+      "White LED"
+    ],
+    [
+      "1e7287cc-c320-45db-8377-b41283b21e27",
+      "Audio Passthrough"
+    ],
+    [
+      "b344dcc1-5eb1-4667-ae18-e691697086c8",
+      "Power Regulation"
     ]
   ],
   "text_variables": {}
