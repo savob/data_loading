@@ -49,7 +49,14 @@
         }
       },
       "diff_pair_dimensions": [],
-      "drc_exclusions": [],
+      "drc_exclusions": [
+        "courtyards_overlap|85320001|152550001|40c2fa1d-7813-4710-ac5d-77d438cc2c5c|ea1ebcf1-db44-4cb9-8290-e5ebc8e7239e",
+        "courtyards_overlap|87650001|152550001|40c2fa1d-7813-4710-ac5d-77d438cc2c5c|ac2ec035-bac7-4013-9c24-63fd8b3371e4",
+        "courtyards_overlap|97720001|150880001|a8f6e4d6-0cde-474a-b642-dd70ce06b583|ac2ec035-bac7-4013-9c24-63fd8b3371e4",
+        "lib_footprint_mismatch|207193218|122173609|1c9451b6-ddc8-4658-a3e3-a6e3c5d7b6d6|00000000-0000-0000-0000-000000000000",
+        "silk_over_copper|80910661|141650000|235ad41d-e6c3-48aa-bb84-9bc76d889a6e|00000000-0000-0000-0000-000000000000",
+        "silk_overlap|82641594|93135000|9a2e66ad-a09d-4554-9a89-4d016fdf4fde|b9344e62-02c1-4472-8751-8d92bde81da0"
+      ],
       "meta": {
         "version": 2
       },
