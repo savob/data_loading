@@ -45,19 +45,11 @@
         "silk_text_thickness": 0.15,
         "silk_text_upright": false,
         "zones": {
-          "min_clearance": 0.5
+          "min_clearance": 0.15
         }
       },
       "diff_pair_dimensions": [],
-      "drc_exclusions": [
-        "clearance|258500000|205000000|5e14aed9-913f-4e98-87d4-a91f59f80d94|51e245fd-d04d-4e68-aa83-faaef1eeaaab",
-        "clearance|261100000|188500000|bf9b76c7-5503-4306-8c12-9a60c8dd585f|1a23d954-e6c1-475d-ab0c-7d7da7d36b30",
-        "clearance|265150000|171650000|295ef06e-9060-42f2-9fec-57646e74aa22|2459d7d2-85f3-4473-87df-c6d1b231033e",
-        "clearance|269500000|155250000|1cf1d51d-96f0-4f29-b0f5-6d22bcc88a44|872a16be-20ea-496e-a6ee-ef9372bbca57",
-        "clearance|321850000|200200000|5f0057f0-1e46-4949-861a-38a0320663b4|22992627-6479-4ce9-b222-eb3ce3168956",
-        "clearance|460800000|157850000|026db218-3afc-4e7b-8db2-dc985a2fb2a5|3d421030-49c7-446b-abca-4be0dec8281c",
-        "lib_footprint_mismatch|380193218|180173609|1c9451b6-ddc8-4658-a3e3-a6e3c5d7b6d6|00000000-0000-0000-0000-000000000000"
-      ],
+      "drc_exclusions": [],
       "meta": {
         "version": 2
       },
@@ -113,10 +105,10 @@
       },
       "rules": {
         "max_error": 0.005,
-        "min_clearance": 0.0,
-        "min_connection": 0.0,
+        "min_clearance": 0.15,
+        "min_connection": 0.15,
         "min_copper_edge_clearance": 0.0,
-        "min_hole_clearance": 0.25,
+        "min_hole_clearance": 0.15,
         "min_hole_to_hole": 0.25,
         "min_microvia_diameter": 0.19999999999999998,
         "min_microvia_drill": 0.09999999999999999,
@@ -125,7 +117,7 @@
         "min_text_height": 0.7999999999999999,
         "min_text_thickness": 0.08,
         "min_through_hole_diameter": 0.3,
-        "min_track_width": 0.0,
+        "min_track_width": 0.15,
         "min_via_annular_width": 0.09999999999999999,
         "min_via_diameter": 0.5,
         "solder_mask_clearance": 0.0,
@@ -483,14 +475,6 @@
     [
       "a8f2f202-932f-4d50-baca-4d48db98fd4c",
       "White LED"
-    ],
-    [
-      "1e7287cc-c320-45db-8377-b41283b21e27",
-      "Audio Passthrough"
-    ],
-    [
-      "b344dcc1-5eb1-4667-ae18-e691697086c8",
-      "Power Regulation"
     ]
   ],
   "text_variables": {}
