@@ -6,8 +6,8 @@
 
   (title_block
     (title "DATA Loading")
-    (date "2024-02-17")
-    (rev "0.2")
+    (date "2024-02-19")
+    (rev "0.3")
     (company "Savo Bajic")
   )
 
@@ -1860,7 +1860,7 @@
     (property "Reference" "R6" (at 121.92 69.85 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
-    (property "Value" "5k1" (at 121.92 72.39 0)
+    (property "Value" "5k9" (at 121.92 72.39 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
     (property "Footprint" "Resistor_SMD:R_0603_1608Metric" (at 117.602 71.12 90)
@@ -2286,7 +2286,7 @@
     (property "Reference" "R5" (at 113.03 69.85 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
-    (property "Value" "5k1" (at 113.03 72.39 0)
+    (property "Value" "5k9" (at 113.03 72.39 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
     (property "Footprint" "Resistor_SMD:R_0603_1608Metric" (at 108.712 71.12 90)
