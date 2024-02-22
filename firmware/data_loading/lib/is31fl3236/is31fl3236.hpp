@@ -114,12 +114,12 @@ private:
     const uint8_t ADDRESS;
     const pin_size_t SHUTDOWN_PIN;
 
-    TwoWire * interface;
+    TwoWire* interface;
 
     int writeSingleRegister(RegistersIS31FL3236 reg, uint8_t val);
 
 public:
-    IS31FL3236(uint8_t add, pin_size_t shtdn, TwoWire * bus);
+    IS31FL3236(uint8_t add, pin_size_t shtdn, TwoWire* bus);
 
     struct ChannelIS31FL3236 channelConfig[36];
     uint8_t duty[36]; // PWM duty for each channel

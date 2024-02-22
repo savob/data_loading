@@ -174,7 +174,7 @@ int IS31FL3236::initialize() {
  * @param shtdn Shutdown pin address
  * @param bus Pointer to I2C bus for the drivers
  */
-IS31FL3236::IS31FL3236(uint8_t add, pin_size_t shtdn, TwoWire * bus) 
+IS31FL3236::IS31FL3236(uint8_t add, pin_size_t shtdn, TwoWire* bus) 
                         :ADDRESS(add), SHUTDOWN_PIN(shtdn) {
     interface = bus;
 }
