@@ -4,8 +4,8 @@
 #include <Arduino.h>
 #include <Wire.h>
 
-extern const int TRANSFER_FAIL;
-extern const int TRANSFER_SUCCESS;
+extern const int IS31_TRANSFER_FAIL;
+extern const int IS31_TRANSFER_SUCCESS;
 
 enum FrequencyIS31FL3236 : uint8_t {
     KHz_3       = 0x00,

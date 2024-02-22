@@ -2,8 +2,8 @@
 
 #include "is31fl3236.hpp"
 
-const int TRANSFER_FAIL = -1;
-const int TRANSFER_SUCCESS = 0;
+const int IS31_TRANSFER_FAIL = -1;
+const int IS31_TRANSFER_SUCCESS = 0;
 
 const byte PWM_GAMMA_64[64] = {
   0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,
@@ -32,8 +32,8 @@ int IS31FL3236::writeSingleRegister(RegistersIS31FL3236 reg, uint8_t val) {
     interface->endTransmission();
 
     // Check if both fields were communicated correctly
-    if (count == 2) return TRANSFER_SUCCESS;
-    return TRANSFER_FAIL;
+    if (count == 2) return IS31_TRANSFER_SUCCESS;
+    return IS31_TRANSFER_FAIL;
 }
 
 /**
@@ -110,7 +110,7 @@ int IS31FL3236::updateChannelConfigurations() {
     interface->endTransmission();
 
     // Check if all fields were communicated correctly (36 channels and the starting address)
-    if (count != 37) return TRANSFER_FAIL;
+    if (count != 37) return IS31_TRANSFER_FAIL;
 
     // Then write to move the values into the hardware
     return writeSingleRegister(RegistersIS31FL3236::PWM_UPDATE, 0x00);
@@ -137,9 +137,9 @@ int IS31FL3236::updateDuties() {
     interface->endTransmission();
 
     // Check if all fields were communicated correctly (36 channels and the starting address)
-    if (count == 38) return TRANSFER_SUCCESS;
+    if (count == 38) return IS31_TRANSFER_SUCCESS;
 
-    return TRANSFER_FAIL;
+    return IS31_TRANSFER_FAIL;
 }
 
 /**
@@ -154,17 +154,17 @@ int IS31FL3236::initialize() {
 
     interface->begin(); // Begin I2C bus
 
-    if (softwareShutdown(false) == TRANSFER_FAIL) return TRANSFER_FAIL;
-    if (setPWMfrequency(FrequencyIS31FL3236::KHz_22) == TRANSFER_FAIL) return TRANSFER_FAIL;
-    if (globalEnable(true) == TRANSFER_FAIL) return TRANSFER_FAIL;
+    if (softwareShutdown(false) == IS31_TRANSFER_FAIL) return IS31_TRANSFER_FAIL;
+    if (setPWMfrequency(FrequencyIS31FL3236::KHz_22) == IS31_TRANSFER_FAIL) return IS31_TRANSFER_FAIL;
+    if (globalEnable(true) == IS31_TRANSFER_FAIL) return IS31_TRANSFER_FAIL;
 
     for (uint_fast8_t i = 0; i < 36; i++) {
         channelConfig[i].state = true;
         channelConfig[i].currentLimit = CurrentSettingIS31FL3236::FULL;
     }
-    if (updateChannelConfigurations() == TRANSFER_FAIL) return TRANSFER_FAIL;
+    if (updateChannelConfigurations() == IS31_TRANSFER_FAIL) return IS31_TRANSFER_FAIL;
 
-    return TRANSFER_SUCCESS;
+    return IS31_TRANSFER_SUCCESS;
 }
 
 /**
