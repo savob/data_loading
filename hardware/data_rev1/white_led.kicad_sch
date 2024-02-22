@@ -1776,6 +1776,14 @@
     (uuid fdfd6b46-2895-43b5-a65f-60526dfed656)
   )
 
+  (text_box "I^{2}C Address of these is 01111xx0 where xx is set by AD connection\nGND, xx is 00\nVCC, xx is 11\nSCL, xx is 01\nSDA, xx is 10"
+    (at 69.85 173.99 0) (size 69.85 11.43)
+    (stroke (width 0) (type default))
+    (fill (type none))
+    (effects (font (size 1.27 1.27)) (justify left top))
+    (uuid 2e65ee96-3771-469a-98b6-d115af287787)
+  )
+
   (text "R_{SET} = 46.8 / I_{OUT}\nI_{OUT} = 8 mA" (at 69.85 166.37 0)
     (effects (font (size 1.27 1.27) italic) (justify right bottom))
     (uuid b4441caa-a5d3-408c-9964-e23be0eb6d0a)
