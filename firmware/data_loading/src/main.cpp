@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include "arduinoFFT.h"
+#include "is31fl3236.hpp"
 
 const pin_size_t R_IN = 26;
 const pin_size_t L_IN = 27;
@@ -19,10 +20,20 @@ int16_t wave_L[samples];
 arduinoFFT FFTright = arduinoFFT(vReal_R, vImag_R, samples, samplingFrquency);
 arduinoFFT FFTleft = arduinoFFT(vReal_L, vImag_L, samples, samplingFrquency);
 
+TwoWire i2cBus(12, 13);
+
+IS31FL3236 drivers[] = {
+  IS31FL3236(0b01111000, 15, &i2cBus),
+  IS31FL3236(0b01111110, 16, &i2cBus)
+};
+
 void setup() {
   Serial.begin(115200);
   analogReadResolution(12);
   delay(1000);
+
+  drivers[0].initialize();
+  drivers[1].initialize();
 }
 
 void loop() {
