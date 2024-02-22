@@ -153,6 +153,7 @@ int IS31FL3236::initialize() {
     hardwareShutdown(false);
 
     interface->begin(); // Begin I2C bus
+    interface->setClock(400000);
 
     if (softwareShutdown(false) == IS31_TRANSFER_FAIL) return IS31_TRANSFER_FAIL;
     if (setPWMfrequency(FrequencyIS31FL3236::KHz_22) == IS31_TRANSFER_FAIL) return IS31_TRANSFER_FAIL;

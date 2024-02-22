@@ -4,6 +4,7 @@
 #include <Wire.h>
 #include "arduinoFFT.h"
 #include "is31fl3236.hpp"
+#include "cap1206.hpp"
 
 const pin_size_t R_IN = 26;
 const pin_size_t L_IN = 27;
@@ -27,6 +28,8 @@ IS31FL3236 drivers[] = {
   IS31FL3236(0b01111110, 16, &i2cBus)
 };
 
+Cap1206 touch(&i2cBus);
+
 void setup() {
   Serial.begin(115200);
   analogReadResolution(12);
@@ -34,6 +37,8 @@ void setup() {
 
   drivers[0].initialize();
   drivers[1].initialize();
+  
+  touch.initialize();
 }
 
 void loop() {
