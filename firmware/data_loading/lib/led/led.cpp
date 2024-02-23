@@ -82,11 +82,16 @@ void LEDfsm(ledFSMstates state, uint8_t buttons) {
     case ledFSMstates::BREATH:
         breathingLED(5000);
         break;
+    case ledFSMstates::SPINNING:
+        spinningLED(5000);
+        break;
     
     default: // Solid is default case
         uniformLED(128);
         break;
     }
+
+    prevState = state;
 }
 
 /**
