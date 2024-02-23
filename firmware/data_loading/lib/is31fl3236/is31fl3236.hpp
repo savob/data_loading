@@ -134,8 +134,6 @@ public:
 
     int updateChannelConfigurations();
     int updateDuties();
-
-    void setGammaPWM(uint_fast8_t led, uint_fast8_t gamma);
 };
 
 #endif

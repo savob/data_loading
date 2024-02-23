@@ -5,6 +5,7 @@
 #include "arduinoFFT.h"
 #include "is31fl3236.hpp"
 #include "cap1206.hpp"
+#include "led.hpp"
 
 const pin_size_t R_IN = 26;
 const pin_size_t L_IN = 27;
@@ -34,6 +35,8 @@ void setup() {
   Serial.begin(115200);
   analogReadResolution(12);
   delay(1000);
+
+  initializeLED(drivers);
 
   drivers[0].initialize();
   drivers[1].initialize();
