@@ -8,20 +8,20 @@ const int CAP1206_TRANSFER_SUCCESS = 0;
 uint8_t defaultThresholds[] = {64, 64, 64, 64, 64, 64};
 
 /**
- * @brief Construct a new CAP1206 object
+ * \brief Construct a new CAP1206 object
  * 
- * @param bus I2C bus to find the sensor on
+ * \param bus I2C bus to find the sensor on
  */
 Cap1206::Cap1206(TwoWire* bus) {
     interface = bus;
 }
 
 /**
- * @brief Writes a value to a single register
+ * \brief Writes a value to a single register
  * 
- * @param reg Target register on the CAP1206
- * @param val Value to write
- * @return Return status of the transfer 
+ * \param reg Target register on the CAP1206
+ * \param val Value to write
+ * \return Return status of the transfer 
  */
 int Cap1206::writeSingleReg(RegistersCap1206 reg, uint8_t val) {
     uint8_t count = 0;
@@ -37,26 +37,26 @@ int Cap1206::writeSingleReg(RegistersCap1206 reg, uint8_t val) {
 }
 
 /**
- * @brief Reads the value of a given register on the CAP1206
+ * \brief Reads the value of a given register on the CAP1206
  * 
- * @param reg Target register
- * @param tar Address to record register value in
- * @return Return status of the transfer 
+ * \param reg Target register
+ * \param tar Address to record register value in
+ * \return Return status of the transfer 
  */
 int Cap1206::readSingleReg(RegistersCap1206 reg, uint8_t* tar) {
     return readManyRegs(reg, 1, tar);
 }
 
 /**
- * @brief Performs a block read of the registers on the CAP1206
+ * \brief Performs a block read of the registers on the CAP1206
  * 
- * @param reg Starting address of block read
- * @param num Number of registers to read
- * @param tar Address to record register values into
+ * \param reg Starting address of block read
+ * \param num Number of registers to read
+ * \param tar Address to record register values into
  * 
- * @note This will read continuously through the memory, potentially into invalid regions. Know what you're looking for!
+ * \note This will read continuously through the memory, potentially into invalid regions. Know what you're looking for!
  * 
- * @return Return status of the transfer 
+ * \return Return status of the transfer 
  */
 int Cap1206::readManyRegs(RegistersCap1206 reg, uint8_t num, uint8_t* tar) {
     uint8_t count = 0;
@@ -81,12 +81,12 @@ int Cap1206::readManyRegs(RegistersCap1206 reg, uint8_t num, uint8_t* tar) {
 }
 
 /**
- * @brief Sets the main control register
+ * \brief Sets the main control register
  * 
- * @param stby Put the chip into standby
- * @param dslp Put the chip into deep sleep (overrides standby)
- * @param clrInt Clear the interrupt flag
- * @return Return status of the transfer 
+ * \param stby Put the chip into standby
+ * \param dslp Put the chip into deep sleep (overrides standby)
+ * \param clrInt Clear the interrupt flag
+ * \return Return status of the transfer 
  */
 int Cap1206::setMainControl(bool stby, bool dslp, bool clrInt) {
     uint8_t temp = 0;
@@ -102,10 +102,10 @@ int Cap1206::setMainControl(bool stby, bool dslp, bool clrInt) {
 }
 
 /**
- * @brief Checks the current interrupt state of the chip
+ * \brief Checks the current interrupt state of the chip
  * 
- * @param tar Location to record if an interrupt has been flagged
- * @return Return status of the transfer 
+ * \param tar Location to record if an interrupt has been flagged
+ * \return Return status of the transfer 
  */
 int Cap1206::checkInterrupt(bool* tar) {
     uint8_t temp = 0;
@@ -119,46 +119,46 @@ int Cap1206::checkInterrupt(bool* tar) {
 }
 
 /**
- * @brief Clears interrupt flag while respecting previous sleep states
+ * \brief Clears interrupt flag while respecting previous sleep states
  * 
- * @return Return status of the transfer 
+ * \return Return status of the transfer 
  */
 int Cap1206::clearInterrupt() {
     return setMainControl(standbyEn, deepSleepEn, true);
 }
 
 /**
- * @brief Returns the state of the main control register
+ * \brief Returns the state of the main control register
  * 
- * @param tar Location to record state
- * @return Return status of the transfer 
+ * \param tar Location to record state
+ * \return Return status of the transfer 
  */
 int Cap1206::checkMainControl(uint8_t* tar) {
     return readSingleReg(RegistersCap1206::MAIN_CTRL, tar);
 }
 
 /**
- * @brief Retrieve general status register
+ * \brief Retrieve general status register
  * 
- * @param tar Location to record state
- * @return Return status of the transfer 
+ * \param tar Location to record state
+ * \return Return status of the transfer 
  */
 int Cap1206::checkGenStatus(uint8_t* tar) {
     return readSingleReg(RegistersCap1206::GEN_STATUS, tar);
 }
 
 /**
- * @brief Retrieve general status register flags
+ * \brief Retrieve general status register flags
  * 
- * @param bc Pointer for base bount exceeding limit
- * @param acal Pointer for analog calibration fails
- * @param pwr Pointer for power button pressing
- * @param mult Pointer for multitouch being active
- * @param mtp Pointer for contacts exceeding multitouch count
- * @param touch Pointer for touch detection
+ * \param bc Pointer for base bount exceeding limit
+ * \param acal Pointer for analog calibration fails
+ * \param pwr Pointer for power button pressing
+ * \param mult Pointer for multitouch being active
+ * \param mtp Pointer for contacts exceeding multitouch count
+ * \param touch Pointer for touch detection
  * 
- * @note If not interested in any given flags just have a shared "trash" pointer as their arguement.
- * @return Return status of the transfer 
+ * \note If not interested in any given flags just have a shared "trash" pointer as their arguement.
+ * \return Return status of the transfer 
  */
 int Cap1206::checkGenStatusFlags(bool* bc, bool* acal, bool* pwr, bool*mult, bool*mtp, bool* touch) {
     uint8_t temp = 0;
@@ -185,10 +185,10 @@ int Cap1206::checkGenStatusFlags(bool* bc, bool* acal, bool* pwr, bool*mult, boo
 };
 
 /**
- * @brief Reads sensor states to an array
+ * \brief Reads sensor states to an array
  * 
- * @param target Array of booleans to write state to (must be at least 6 elements)
- * @return Return status of the transfer 
+ * \param target Array of booleans to write state to (must be at least 6 elements)
+ * \return Return status of the transfer 
  */
 int Cap1206::readSensors(bool target[]) {
     uint8_t temp = 0;
@@ -203,20 +203,20 @@ int Cap1206::readSensors(bool target[]) {
 }
 
 /**
- * @brief Retrieve the sensor state register value
+ * \brief Retrieve the sensor state register value
  * 
- * @param target Location to record state to
- * @return Return status of the transfer 
+ * \param target Location to record state to
+ * \return Return status of the transfer 
  */
 int Cap1206::readSensors(uint8_t* target) {
     return readSingleReg(RegistersCap1206::SENSOR_INPUT, target);
 }
 
 /**
- * @brief Reads noise flag states to an array
+ * \brief Reads noise flag states to an array
  * 
- * @param target Array of booleans to write state to (must be at least 6 elements)
- * @return Return status of the transfer 
+ * \param target Array of booleans to write state to (must be at least 6 elements)
+ * \return Return status of the transfer 
  */
 int Cap1206::readNoiseFlags(bool target[]) {
     uint8_t temp = 0;
@@ -231,23 +231,23 @@ int Cap1206::readNoiseFlags(bool target[]) {
 }
 
 /**
- * @brief Retrieve the noise flag register value
+ * \brief Retrieve the noise flag register value
  * 
- * @param target Location to record state to
- * @return Return status of the transfer 
+ * \param target Location to record state to
+ * \return Return status of the transfer 
  */
 int Cap1206::readNoiseFlags(uint8_t* target) {
     return readSingleReg(RegistersCap1206::NOISE_FLAG, target);
 }
 
 /**
- * @brief Adjust the sensitivity of touch detection
+ * \brief Adjust the sensitivity of touch detection
  * 
- * @param sens Sensitivity level to use
- * @param shift Scaling of the base count registers
+ * \param sens Sensitivity level to use
+ * \param shift Scaling of the base count registers
  * 
- * @note Base count shifting doesn't affect detection or sensitivity to touches, so no need to adjust
- * @return Return status of the transfer 
+ * \note Base count shifting doesn't affect detection or sensitivity to touches, so no need to adjust
+ * \return Return status of the transfer 
  */
 int Cap1206::setSensitivity(DeltaSensitivityCap1206 sens, BaseShiftCap1206 shift) {
     uint8_t temp = 0;
@@ -259,13 +259,13 @@ int Cap1206::setSensitivity(DeltaSensitivityCap1206 sens, BaseShiftCap1206 shift
 }
 
 /**
- * @brief Set configuration register 1
+ * \brief Set configuration register 1
  * 
- * @param smbTO Enable the timeout functionality of the SMBus protocol
- * @param disDigNoise Disables the digital noise ignoring feature
- * @param disAnaNoise Disables the analog noise ignoring feature
- * @param maxDurEn Enables auto recalibration if a button is held for too long
- * @return Return status of the transfer 
+ * \param smbTO Enable the timeout functionality of the SMBus protocol
+ * \param disDigNoise Disables the digital noise ignoring feature
+ * \param disAnaNoise Disables the analog noise ignoring feature
+ * \param maxDurEn Enables auto recalibration if a button is held for too long
+ * \return Return status of the transfer 
  */
 int Cap1206::setConfig1(bool smbTO, bool disDigNoise, bool disAnaNoise, bool maxDurEn) {
     uint8_t temp = 0;
@@ -279,16 +279,16 @@ int Cap1206::setConfig1(bool smbTO, bool disDigNoise, bool disAnaNoise, bool max
 }
 
 /**
- * @brief Set configuration register 2
+ * \brief Set configuration register 2
  * 
- * @param bcOutRecal Controls whether to retry analog calibration when the base count is out of limit on a sensor
- * @param powReduction Reduce power when waiting between conversion finishing and sensing cycle finishing
- * @param bcOutInt Trigger an interrupt when base count is out of limit
- * @param showRFnoiseOnly Show only RF noise as the noise flag for sensors
- * @param disRFnoise Disable the RF filtering feature for sensors
- * @param anaCalFailInt Trigger an interrupt if an analog calibration fails
- * @param intRelease Trigger interrupts when buttons are released
- * @return Return status of the transfer 
+ * \param bcOutRecal Controls whether to retry analog calibration when the base count is out of limit on a sensor
+ * \param powReduction Reduce power when waiting between conversion finishing and sensing cycle finishing
+ * \param bcOutInt Trigger an interrupt when base count is out of limit
+ * \param showRFnoiseOnly Show only RF noise as the noise flag for sensors
+ * \param disRFnoise Disable the RF filtering feature for sensors
+ * \param anaCalFailInt Trigger an interrupt if an analog calibration fails
+ * \param intRelease Trigger interrupts when buttons are released
+ * \return Return status of the transfer 
  */
 int Cap1206::setConfig2(bool bcOutRecal, bool powReduction, bool bcOutInt, bool showRFnoiseOnly, bool disRFnoise, bool anaCalFailInt, bool intRelease) {
     uint8_t temp = 0;
@@ -305,10 +305,10 @@ int Cap1206::setConfig2(bool bcOutRecal, bool powReduction, bool bcOutInt, bool 
 }
 
 /**
- * @brief Enable selected sensors on the CAP1206 
+ * \brief Enable selected sensors on the CAP1206 
  * 
- * @param sensors Array of which buttons to enable. Must be of size six. 
- * @return Return status of the transfer 
+ * \param sensors Array of which buttons to enable. Must be of size six. 
+ * \return Return status of the transfer 
  */
 int Cap1206::enableSensors(bool sensors[]) {
     uint8_t temp = 0;
@@ -321,20 +321,20 @@ int Cap1206::enableSensors(bool sensors[]) {
 }
 
 /**
- * @brief Enable selected sensors on the CAP1206  
+ * \brief Enable selected sensors on the CAP1206  
  * 
- * @param sensors Mask of which buttons to enable 
- * @return Return status of the transfer 
+ * \param sensors Mask of which buttons to enable 
+ * \return Return status of the transfer 
  */
 int Cap1206::enableSensors(uint8_t sensors) {
     return writeSingleReg(RegistersCap1206::SENS_IN_EN, sensors);
 }
 
 /**
- * @brief Enable repeat events on selected sensors on the CAP1206 
+ * \brief Enable repeat events on selected sensors on the CAP1206 
  * 
- * @param sensors Array of which buttons to enable. Must be of size six. 
- * @return Return status of the transfer 
+ * \param sensors Array of which buttons to enable. Must be of size six. 
+ * \return Return status of the transfer 
  */
 int Cap1206::enableRepeat(bool sensors[]) {
     uint8_t temp = 0;
@@ -347,21 +347,21 @@ int Cap1206::enableRepeat(bool sensors[]) {
 }
 
 /**
- * @brief Enable repeat events on selected sensors on the CAP1206  
+ * \brief Enable repeat events on selected sensors on the CAP1206  
  * 
- * @param sensors Mask of which buttons to enable 
- * @return Return status of the transfer 
+ * \param sensors Mask of which buttons to enable 
+ * \return Return status of the transfer 
  */
 int Cap1206::enableRepeat(uint8_t sensors) {
     return writeSingleReg(RegistersCap1206::REPEAT_RATE_EN, sensors);
 }
 
 /**
- * @brief Set the sensor input configuration 1 register
+ * \brief Set the sensor input configuration 1 register
  * 
- * @param dur Maximum duration of touch allowed until recalibrated automatically
- * @param rep Time between interrupts when auto repeat is enabled
- * @return Return status of the transfer 
+ * \param dur Maximum duration of touch allowed until recalibrated automatically
+ * \param rep Time between interrupts when auto repeat is enabled
+ * \return Return status of the transfer 
  */
 int Cap1206::setSensorInputConfig1(MaxDurationcap1206 dur, RepeatRateCap1206 rep) {
     uint8_t temp = 0;
@@ -373,10 +373,10 @@ int Cap1206::setSensorInputConfig1(MaxDurationcap1206 dur, RepeatRateCap1206 rep
 }
 
 /**
- * @brief Set the sensor input configuration 2 register
+ * \brief Set the sensor input configuration 2 register
  * 
- * @param min Minium time before prior to auto repeat starts
- * @return Return status of the transfer 
+ * \param min Minium time before prior to auto repeat starts
+ * \return Return status of the transfer 
  */
 int Cap1206::setSensorInputConfig2(MinForRepeatCap1206 min) {
     uint8_t temp = 0;
@@ -387,12 +387,12 @@ int Cap1206::setSensorInputConfig2(MinForRepeatCap1206 min) {
 }
 
 /**
- * @brief Configure how measurements are taken
+ * \brief Configure how measurements are taken
  * 
- * @param ave Number of samples taken per measurement
- * @param sam Time to take a single sample, affects magnitude of base counts
- * @param cyc Desired sensing cycle time (period)
- * @return Return status of the transfer 
+ * \param ave Number of samples taken per measurement
+ * \param sam Time to take a single sample, affects magnitude of base counts
+ * \param cyc Desired sensing cycle time (period)
+ * \return Return status of the transfer 
  */
 int Cap1206::setAverageAndSampling(AveragedSamplesCap1206 ave, SampleTimeCap1206 sam, CycleTime1206 cyc) {
     uint8_t temp = 0;
@@ -405,10 +405,10 @@ int Cap1206::setAverageAndSampling(AveragedSamplesCap1206 ave, SampleTimeCap1206
 }
 
 /**
- * @brief Sets the noise threshold for the CAP1206
+ * \brief Sets the noise threshold for the CAP1206
  * 
- * @param thrs Noise threshold to use for inputs
- * @return Return status of the transfer 
+ * \param thrs Noise threshold to use for inputs
+ * \return Return status of the transfer 
  */
 int Cap1206::setSensorInputNoiseThreshold(SensNoiseThrsCap1206 thrs) {
     uint8_t temp = 0;
@@ -419,10 +419,10 @@ int Cap1206::setSensorInputNoiseThreshold(SensNoiseThrsCap1206 thrs) {
 }
 
 /**
- * @brief Trigger calibration on selected sensors on the CAP1206 
+ * \brief Trigger calibration on selected sensors on the CAP1206 
  * 
- * @param sensors Array of which buttons to calibrate. Must be of size six. 
- * @return Return status of the transfer 
+ * \param sensors Array of which buttons to calibrate. Must be of size six. 
+ * \return Return status of the transfer 
  */
 int Cap1206::setCalibrations(bool sensors[]) {
     uint8_t temp = 0;
@@ -435,20 +435,20 @@ int Cap1206::setCalibrations(bool sensors[]) {
 }
 
 /**
- * @brief Trigger calibration on selected sensors on the CAP1206
+ * \brief Trigger calibration on selected sensors on the CAP1206
  * 
- * @param sensors Mask of which buttons to calibrate 
- * @return Return status of the transfer 
+ * \param sensors Mask of which buttons to calibrate 
+ * \return Return status of the transfer 
  */
 int Cap1206::setCalibrations(uint8_t sensors) {
     return writeSingleReg(RegistersCap1206::CALIB_ACT_STAT, sensors);
 }
 
 /**
- * @brief Reads calibration flag states to an array
+ * \brief Reads calibration flag states to an array
  * 
- * @param sensors Array of booleans to write state to (must be at least 6 elements)
- * @return Return status of the transfer 
+ * \param sensors Array of booleans to write state to (must be at least 6 elements)
+ * \return Return status of the transfer 
  */
 int Cap1206::readCalibrations(bool sensors[]) {
     uint8_t temp = 0;
@@ -463,20 +463,20 @@ int Cap1206::readCalibrations(bool sensors[]) {
 }
 
 /**
- * @brief Retrieve the calibration flag register value
+ * \brief Retrieve the calibration flag register value
  * 
- * @param target Location to record state to
- * @return Return status of the transfer 
+ * \param target Location to record state to
+ * \return Return status of the transfer 
  */
 int Cap1206::readCalibrations(uint8_t* sensors) {
     return readSingleReg(RegistersCap1206::CALIB_ACT_STAT, sensors);
 }
 
 /**
- * @brief Enable interrupt events on selected sensors on the CAP1206 
+ * \brief Enable interrupt events on selected sensors on the CAP1206 
  * 
- * @param sensors Array of which buttons to calibrate. Must be of size six. 
- * @return Return status of the transfer 
+ * \param sensors Array of which buttons to calibrate. Must be of size six. 
+ * \return Return status of the transfer 
  */
 int Cap1206::enableInterrupt(bool sensors[]) {
     uint8_t temp = 0;
@@ -489,26 +489,26 @@ int Cap1206::enableInterrupt(bool sensors[]) {
 }
 
 /**
- * @brief Enable interrupt events on selected sensors on the CAP1206
+ * \brief Enable interrupt events on selected sensors on the CAP1206
  * 
- * @param sensors Mask of which buttons to calibrate 
- * @return Return status of the transfer 
+ * \param sensors Mask of which buttons to calibrate 
+ * \return Return status of the transfer 
  */
 int Cap1206::enableInterrupt(uint8_t sensors) {
     return writeSingleReg(RegistersCap1206::INT_EN, sensors);
 }
 
 /**
- * @brief Configure the behaviour of automatic recalibrations
+ * \brief Configure the behaviour of automatic recalibrations
  * 
- * @param ldth Enable setting all sensor threshold by writing to sensor 1's threshold
- * @note Other sensors threshold can still be set individually even if all are set by sensor 1's value 
- * @param clrint Clear intermediate acumulated data if noise is detected
- * @param clrneg Clear the consecutive negative delta count if noise is detected
- * @note `clrint` and `clrneg` should be set to the same value per datasheet
- * @param negcnt Number of consecutive negative deltas to trigger a digital recalibration
- * @param cal Update time and samples needed for automatic recalibrations
- * @return Return status of the transfer 
+ * \param ldth Enable setting all sensor threshold by writing to sensor 1's threshold
+ * \note Other sensors threshold can still be set individually even if all are set by sensor 1's value 
+ * \param clrint Clear intermediate acumulated data if noise is detected
+ * \param clrneg Clear the consecutive negative delta count if noise is detected
+ * \note `clrint` and `clrneg` should be set to the same value per datasheet
+ * \param negcnt Number of consecutive negative deltas to trigger a digital recalibration
+ * \param cal Update time and samples needed for automatic recalibrations
+ * \return Return status of the transfer 
  */
 int Cap1206::setRecalConfig(bool ldth, bool clrint, bool clrneg, NegDeltaCountCap1206 negcnt, CalConfigCap1206 cal) {
     uint8_t temp = 0;
@@ -523,13 +523,13 @@ int Cap1206::setRecalConfig(bool ldth, bool clrint, bool clrneg, NegDeltaCountCa
 }
 
 /**
- * @brief Sets the threshold for a given button
+ * \brief Sets the threshold for a given button
  * 
- * @param but Button index to adjust
- * @note Buttons are indexed from 0 in this code but the data sheet starts at 1
- * @param thres New threshold for the button (0 - 127 inclusive, will be clamped)
- * @note Setting the value for button 1 may overwrite the other buttons' thresholds. Thus button 1 should generally be set first and then the others.
- * @return Return status of the transfer 
+ * \param but Button index to adjust
+ * \note Buttons are indexed from 0 in this code but the data sheet starts at 1
+ * \param thres New threshold for the button (0 - 127 inclusive, will be clamped)
+ * \note Setting the value for button 1 may overwrite the other buttons' thresholds. Thus button 1 should generally be set first and then the others.
+ * \return Return status of the transfer 
  */
 int Cap1206::setButtonThreshold(uint8_t but, uint8_t thres) {
     if (thres > 127) thres = 127;
@@ -551,11 +551,11 @@ int Cap1206::setButtonThreshold(uint8_t but, uint8_t thres) {
 }
 
 /**
- * @brief Updates all the button thresholds
+ * \brief Updates all the button thresholds
  * 
- * @param thres Array of thresholds for the button thresholds (0 - 127 inclusive, will be clamped). Must be of size 6.
- * @note Buttons are indexed from 0 in this code but the data sheet starts at 1
- * @return Return status of the transfer 
+ * \param thres Array of thresholds for the button thresholds (0 - 127 inclusive, will be clamped). Must be of size 6.
+ * \note Buttons are indexed from 0 in this code but the data sheet starts at 1
+ * \return Return status of the transfer 
  */
 int Cap1206::setButtonThresholds(uint8_t thres[]) {
     uint8_t count = 0;
@@ -576,9 +576,9 @@ int Cap1206::setButtonThresholds(uint8_t thres[]) {
 }
 
 /**
- * @brief Initializes the CAP1206 sensor
+ * \brief Initializes the CAP1206 sensor
  * 
- * @return Return status of the transfer 
+ * \return Return status of the transfer 
  */
 int Cap1206::initialize() {
 

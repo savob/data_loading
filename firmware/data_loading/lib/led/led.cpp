@@ -22,13 +22,13 @@ const byte PWM_GAMMA_64[64] = {
 }; // Gamma levels that are perceived as even steps in brightness
 
 /**
- * @brief Function to initialize the LEDs
+ * \brief Function to initialize the LEDs
  * 
- * @param drvrs Array of LED drivers
- * @note This is best called prior to the initialization the the drivers themselves
+ * \param drvrs Array of LED drivers
+ * \note This is best called prior to the initialization the the drivers themselves
  */
 void initializeLED(IS31FL3236 drvrs[]) {
-    for (uint_fast8_t i = 0; i < numLED; i++) LEDlevel[i] = 0;
+    for (ledInd_t i = 0; i < numLED; i++) LEDlevel[i] = 0;
 
     // Configure the LED channels for each driver
     // This is done if we want to dim one set of LEDs relative to the other
@@ -49,13 +49,13 @@ void initializeLED(IS31FL3236 drvrs[]) {
 }
 
 /**
- * @brief Maps the calculated LED values to the right hardware register
+ * \brief Maps the calculated LED values to the right hardware register
  * 
- * @param drvrs Te array of LED drivers
+ * \param drvrs Te array of LED drivers
  * 
- * @note THIS MUST BE UPDATED WITH ANY HARDWARE CHANGES!
+ * \note THIS MUST BE UPDATED WITH ANY HARDWARE CHANGES!
  * 
- * @warning This must be called so LED effects can be seen
+ * \warning This must be called so LED effects can be seen
  */
 void remap(IS31FL3236 drvrs[]) {
     for (uint_fast8_t i = 0; i < 6; i++) {
@@ -70,10 +70,10 @@ void remap(IS31FL3236 drvrs[]) {
 }
 
 /**
- * @brief Finite State Machine for the LEDs
+ * \brief Finite State Machine for the LEDs
  * 
- * @param state What state to put the LEDs into
- * @param buttons State of the buttons
+ * \param state What state to put the LEDs into
+ * \param buttons State of the buttons
  */
 void LEDfsm(ledFSMstates state, uint8_t buttons) {
     static ledFSMstates prevState = ledFSMstates::SOLID;
@@ -90,15 +90,15 @@ void LEDfsm(ledFSMstates state, uint8_t buttons) {
 }
 
 /**
- * @brief Used to check if a given effect has not been used for a while
+ * \brief Used to check if a given effect has not been used for a while
  * 
- * @param mark The next time an effect increment is meant to occur
- * @param stepPeriod The desired period between effect increments
- * @param curTime The current time
+ * \param mark The next time an effect increment is meant to occur
+ * \param stepPeriod The desired period between effect increments
+ * \param curTime The current time
  * 
- * @note All marameters should reference the same clock and unit (milli- or microseconds)
+ * \note All marameters should reference the same clock and unit (milli- or microseconds)
  * 
- * @return If a timeout/reset has occured
+ * \return If a timeout/reset has occured
  */
 bool checkReset(unsigned long mark, unsigned long stepPeriod, unsigned long curTime) {
     if (mark >= curTime) return false; // If mark is in the future then not timed out
@@ -113,10 +113,10 @@ bool checkReset(unsigned long mark, unsigned long stepPeriod, unsigned long curT
 }
 
 /**
- * @brief Ensures an index for LEDs is valid, rolls it over if needed
+ * \brief Ensures an index for LEDs is valid, rolls it over if needed
  * 
- * @param ind Index to verify
- * @return Index for the LED in valid range
+ * \param ind Index to verify
+ * \return Index for the LED in valid range
  */
 ledInd_t constrainLEDindex(ledInd_t ind) {
     if ((ind >= 0) && (ind < numLED)) return ind; // Valid
@@ -129,19 +129,19 @@ ledInd_t constrainLEDindex(ledInd_t ind) {
 }
 
 /**
- * @brief Sets all LEDs to a uniform brightness
+ * \brief Sets all LEDs to a uniform brightness
  * 
- * @param intensity LED level to set
+ * \param intensity LED level to set
  */
 void uniformLED(ledlevel_t intensity) {
-    for (uint_fast8_t i = 0; i < numLED; i++) LEDlevel[i] = intensity;
+    for (ledInd_t i = 0; i < numLED; i++) LEDlevel[i] = intensity;
 }
 
 /**
- * @brief Does a uniform cyclic breathing effect (fading in and out)
+ * \brief Does a uniform cyclic breathing effect (fading in and out)
  * 
- * @param periodMS Period in ms for a complete breathing cycle
- * @note Will intrepret a lack of calls in 
+ * \param periodMS Period in ms for a complete breathing cycle
+ * \note Will intrepret a lack of calls in 
  */
 void breathingLED(unsigned long periodMS) {
     const ledlevel_t maxIntensity = 63;
