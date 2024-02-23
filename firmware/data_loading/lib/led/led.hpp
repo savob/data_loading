@@ -38,6 +38,9 @@ void remap(IS31FL3236 drvrs[]);
 
 void LEDfsm(ledFSMstates state, uint8_t buttons);
 
+bool checkReset(unsigned long mark, unsigned long stepPeriod, unsigned long curTime);
+ledInd_t constrainLEDindex(ledInd_t ind);
+
 void breathingLED(unsigned long periodMS);
 void uniformLED(ledlevel_t intensity);
 void spinningLED(unsigned long periodMS);

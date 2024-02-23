@@ -90,6 +90,45 @@ void LEDfsm(ledFSMstates state, uint8_t buttons) {
 }
 
 /**
+ * @brief Used to check if a given effect has not been used for a while
+ * 
+ * @param mark The next time an effect increment is meant to occur
+ * @param stepPeriod The desired period between effect increments
+ * @param curTime The current time
+ * 
+ * @note All marameters should reference the same clock and unit (milli- or microseconds)
+ * 
+ * @return If a timeout/reset has occured
+ */
+bool checkReset(unsigned long mark, unsigned long stepPeriod, unsigned long curTime) {
+    if (mark >= curTime) return false; // If mark is in the future then not timed out
+
+    /*  Reset check
+
+        Checking if the function hasn't been called for some time
+        indirectly via a notably out of date `nextMark` value. Thus 
+        the function should probably restart.
+    */ 
+    return (mark + (3 * stepPeriod)) < curTime;
+}
+
+/**
+ * @brief Ensures an index for LEDs is valid, rolls it over if needed
+ * 
+ * @param ind Index to verify
+ * @return Index for the LED in valid range
+ */
+ledInd_t constrainLEDindex(ledInd_t ind) {
+    if ((ind >= 0) && (ind < numLED)) return ind; // Valid
+
+    while (ind < 0) ind = ind + numLED; // Brings index into positives
+    ind = ind % numLED; // Deal with it potentially exceeding the limit
+    // Modulo after ensuring it's positive since modulo acts wierd if you use negatives
+
+    return ind;
+}
+
+/**
  * @brief Sets all LEDs to a uniform brightness
  * 
  * @param intensity LED level to set
@@ -117,15 +156,7 @@ void breathingLED(unsigned long periodMS) {
     // Determine approximate time step for each lighting step so a complete up-down cycle is done
     unsigned int stepMS = periodMS / (2 * (maxIntensity / intensityStep));
 
-    /*  Reset check
-
-        Checking if the function hasn't been called for some time
-        indirectly via a notably out of date `nextMark` value. Thus 
-        the function should probably restart.
-    */ 
-
-    bool restart = false;
-    restart = (nextMark + 3 * stepMS) < currentTime;
+    bool restart = checkReset(nextMark, stepMS, currentTime);
 
     if (restart == true) {
         breathingIntensity = 0;
