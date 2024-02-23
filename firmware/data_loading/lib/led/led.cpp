@@ -186,3 +186,52 @@ void breathingLED(unsigned long periodMS) {
     uniformLED(PWM_GAMMA_64[breathingIntensity]);
     //uniform(breathingIntensity);
 }
+
+/**
+ * \brief Moves perturbations around the logo gradually
+ * 
+ * \param periodMS Period for one rotation around board
+ * \note Probably going to be pretty choppy if run slowly
+ */
+void spinningLED(unsigned long periodMS) {
+    const ledlevel_t backgroundIntensity = 10;
+    const int numBump = 2; // Number of light "bumps" going around
+    const ledInd_t spacing = numLED / numBump;
+    ledlevel_t stages[] = {63, 40, 20, backgroundIntensity}; //
+    const int numStages = sizeof(stages) / sizeof(stages[0]);
+    // Need to include background to reset 
+
+    static ledInd_t location = 0;
+    static bool clockwise = true;            // True if brightness is to climb
+
+    static unsigned long nextMark = 0;      // Marks next time to adjust brightness
+    unsigned long currentTime = millis();
+
+    // Determine approximate time step for each lighting step so rotations are done
+    unsigned int stepMS = periodMS / numLED;
+
+    bool restart = checkReset(nextMark, stepMS, currentTime);
+
+    if (restart == true) {
+        uniformLED(PWM_GAMMA_64[backgroundIntensity]);
+        clockwise = true;
+        nextMark = currentTime + stepMS;
+    }
+    else if (nextMark < currentTime) {
+        nextMark = currentTime + stepMS;
+
+        if (clockwise) location = constrainLEDindex(location++);
+        else location = constrainLEDindex(location--);
+
+        for (int_fast8_t b = 0; b < numBump; b++) {
+            ledInd_t baseAddress = location + (b * spacing);
+
+            for (ledInd_t offset = 0; offset < numStages; offset++) {
+                ledInd_t ahead = constrainLEDindex(baseAddress + offset);
+                ledInd_t behind = constrainLEDindex(baseAddress - offset);
+                LEDlevel[ahead] = stages[offset];
+                LEDlevel[behind] = stages[offset];
+            }
+        }
+    }
+}
