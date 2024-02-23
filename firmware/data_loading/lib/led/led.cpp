@@ -3,12 +3,12 @@
 #include "is31fl3236.hpp"
 #include "led.hpp"
 
-const uint8_t numLED = 72;
+const ledInd_t numLED = 72;
 
-uint8_t LEDlevel[numLED] = {0};
-uint8_t LEDstartIndex[] = {0, 8, 38, 44};
-uint8_t LEDmiddleIndex[] = {4, 23, 41, 58};
-uint8_t LEDbutton[] = {44, 42, 40, 38};
+ledlevel_t LEDlevel[numLED] = {0};
+ledInd_t LEDstartIndex[] = {0, 8, 38, 44};
+ledInd_t LEDmiddleIndex[] = {4, 23, 41, 58};
+ledInd_t LEDbutton[] = {44, 42, 40, 38};
 
 const byte PWM_GAMMA_64[64] = {
   0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,
@@ -76,14 +76,14 @@ void remap(IS31FL3236 drvrs[]) {
  * @param buttons State of the buttons
  */
 void LEDfsm(ledFSMstates state, uint8_t buttons) {
-    static ledFSMstates prevState = ledFSMstates::BREATH;
+    static ledFSMstates prevState = ledFSMstates::SOLID;
 
     switch (state) {
     case ledFSMstates::BREATH:
-        breathingLED(50);
+        breathingLED(5000);
         break;
     
-    default:
+    default: // Solid is default case
         uniformLED(128);
         break;
     }
@@ -94,26 +94,28 @@ void LEDfsm(ledFSMstates state, uint8_t buttons) {
  * 
  * @param intensity LED level to set
  */
-void uniformLED(uint8_t intensity) {
+void uniformLED(ledlevel_t intensity) {
     for (uint_fast8_t i = 0; i < numLED; i++) LEDlevel[i] = intensity;
 }
 
 /**
  * @brief Does a uniform cyclic breathing effect (fading in and out)
  * 
- * @param stepMS Period in ms between brightness changes
+ * @param periodMS Period in ms for a complete breathing cycle
  * @note Will intrepret a lack of calls in 
  */
-void breathingLED(unsigned int stepMS) {
-    const uint8_t maxIntensity = 63;
-    const uint8_t intensityStep = 1;
+void breathingLED(unsigned long periodMS) {
+    const ledlevel_t maxIntensity = 63;
+    const ledlevel_t intensityStep = 1;
 
-    static uint8_t breathingIntensity = 0;
+    static ledlevel_t breathingIntensity = 0;
     static unsigned long nextMark = 0;      // Marks next time to adjust brightness
     static bool climbing = true;            // True if brightness is to climb
 
     unsigned long currentTime = millis();
 
+    // Determine approximate time step for each lighting step so a complete up-down cycle is done
+    unsigned int stepMS = periodMS / (2 * (maxIntensity / intensityStep));
 
     /*  Reset check
 
@@ -128,7 +130,7 @@ void breathingLED(unsigned int stepMS) {
     if (restart == true) {
         breathingIntensity = 0;
         climbing = true;
-        nextMark = 0;
+        nextMark = currentTime + stepMS;
     }
     else if (nextMark < currentTime) {
         nextMark = currentTime + stepMS;
