@@ -43,5 +43,5 @@ ledInd_t constrainLEDindex(ledInd_t ind);
 
 void breathingLED(unsigned long periodMS);
 void uniformLED(ledlevel_t intensity);
-void spinningLED(unsigned long periodMS);
+void spinningLED(unsigned long periodMS, bool clockwise = true);
 #endif

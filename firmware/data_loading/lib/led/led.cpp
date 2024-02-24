@@ -196,18 +196,18 @@ void breathingLED(unsigned long periodMS) {
  * \brief Moves perturbations around the logo gradually
  * 
  * \param periodMS Period for one rotation around board
+ * \param clockwise Direction of rotation, true for clockwise
  * \note Probably going to be pretty choppy if run slowly
  */
-void spinningLED(unsigned long periodMS) {
+void spinningLED(unsigned long periodMS, bool clockwise = true) {
     const ledlevel_t backgroundIntensity = 10;
     const int numBump = 2; // Number of light "bumps" going around
     const ledInd_t spacing = numLED / numBump;
-    ledlevel_t stages[] = {63, 40, 20, backgroundIntensity}; //
+    ledlevel_t stages[] = {63, 40, 20, backgroundIntensity}; // Gamma intensities of the bumps going around
     const int numStages = sizeof(stages) / sizeof(stages[0]);
     // Need to include background to reset 
 
     static ledInd_t location = 0;
-    static bool clockwise = true;            // True if brightness is to climb
 
     static unsigned long nextMark = 0;      // Marks next time to adjust brightness
     unsigned long currentTime = millis();
@@ -219,7 +219,6 @@ void spinningLED(unsigned long periodMS) {
 
     if (restart == true) {
         uniformLED(PWM_GAMMA_64[backgroundIntensity]);
-        clockwise = true;
         nextMark = currentTime + stepMS;
     }
     else if (nextMark < currentTime) {

@@ -53,7 +53,7 @@ void loop() {
 
   // FFT Data preparation (1.7ms)
   for (int i = 0; i < samples; i++) {
-    vReal_R[i] = (wave_R[i] - 2048) * 3.3 / 4096.0; // 電圧に換算
+    vReal_R[i] = (wave_R[i] - 2048) * 3.3 / 4096.0;
     vReal_L[i] = (wave_L[i] - 2048) * 3.3 / 4096.0;
     vImag_R[i] = 0;
     vImag_L[i] = 0;
