@@ -40,8 +40,12 @@ void LEDfsm(ledFSMstates state, uint8_t buttons);
 
 bool checkReset(unsigned long mark, unsigned long stepPeriod, unsigned long curTime);
 ledInd_t constrainLEDindex(ledInd_t ind);
+void paintColumns(ledlevel_t intensities[], bool gamma = false);
+void paintRows(ledlevel_t intensities[], bool gamma = false);
 
 void breathingLED(unsigned long periodMS);
 void uniformLED(ledlevel_t intensity);
-void spinningLED(unsigned long periodMS, bool clockwise = true);
+void spinningLED(unsigned long periodMS, bool clockwise);
+void waveVerLED(unsigned long periodMS, bool upwards = true);
+void waveHorLED(unsigned long periodMS, bool rightwards = true);
 #endif

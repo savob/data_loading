@@ -4,6 +4,8 @@
 #include "led.hpp"
 
 const ledInd_t numLED = 72;
+const ledInd_t numRows = 8;
+const ledInd_t numCols = 30;
 
 ledlevel_t LEDlevel[numLED] = {0};
 ledInd_t LEDstartIndex[] = {0, 8, 38, 44};
@@ -83,7 +85,13 @@ void LEDfsm(ledFSMstates state, uint8_t buttons) {
         breathingLED(5000);
         break;
     case ledFSMstates::SPINNING:
-        spinningLED(5000);
+        spinningLED(5000, true);
+        break;
+    case ledFSMstates::WAVE_HORI:
+        waveHorLED(3000, false);
+        break;
+    case ledFSMstates::WAVE_VERT:
+        waveVerLED(3000, false);
         break;
     
     default: // Solid is default case
@@ -131,6 +139,68 @@ ledInd_t constrainLEDindex(ledInd_t ind) {
     // Modulo after ensuring it's positive since modulo acts wierd if you use negatives
 
     return ind;
+}
+
+/**
+ * \brief Paints the LEDs in each row a uniform brightness
+ * 
+ * \param intensities Array of intensities to paint on the rows
+ * \param gamma Are intensities gamma levels or not? (0 to 63)
+ * 
+ * \note Bottom row is row 0
+ */
+void paintColumns(ledlevel_t intensities[], bool gamma) {
+    if (gamma == true) {
+        // Right side
+        for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) LEDlevel[i] = PWM_GAMMA_64[intensities[numRows - i]];
+        // Bottom row
+        for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) LEDlevel[i] = PWM_GAMMA_64[intensities[0]];
+        // Left side
+        for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) LEDlevel[i] = PWM_GAMMA_64[intensities[i - LEDstartIndex[2]]];
+        // Top row
+        for (ledInd_t i = LEDstartIndex[3]; i < numLED; i++) LEDlevel[i] = PWM_GAMMA_64[intensities[numRows]];
+    }
+    else {
+        // Right side
+        for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) LEDlevel[i] = intensities[numRows - i];
+        // Bottom row
+        for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) LEDlevel[i] = intensities[0];
+        // Left side
+        for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) LEDlevel[i] = intensities[i - LEDstartIndex[2]];
+        // Top row
+        for (ledInd_t i = LEDstartIndex[3]; i < numLED; i++) LEDlevel[i] = intensities[numRows];
+    }
+}
+
+/**
+ * \brief Paints the LEDs in each column a 
+ * 
+ * \param intensities Array of intensities to paint on the columns
+ * \param gamma Are intensities gamma levels or not? (0 to 63)
+ * 
+ * \note Left column is column 0
+ */
+void paintRows(ledlevel_t intensities[], bool gamma) {
+    if (gamma == true) {
+        // Right side
+        for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) LEDlevel[i] = PWM_GAMMA_64[intensities[numCols]];
+        // Bottom row
+        for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) LEDlevel[i] = PWM_GAMMA_64[intensities[(numCols - 1) - LEDstartIndex[1]]];
+        // Left side
+        for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) LEDlevel[i] = PWM_GAMMA_64[intensities[0]];
+        // Top row, since it is a bit narrower we skip the outer values
+        for (ledInd_t i = LEDstartIndex[3]; i < numLED; i++) LEDlevel[i] = PWM_GAMMA_64[intensities[(i + 1) - LEDstartIndex[3]]];
+    }
+    else {
+        // Right side
+        for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) LEDlevel[i] = intensities[numCols];
+        // Bottom row
+        for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) LEDlevel[i] = intensities[(numCols - 1) - LEDstartIndex[1]];
+        // Left side
+        for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) LEDlevel[i] = intensities[0];
+        // Top row, since it is a bit narrower we skip the outer values
+        for (ledInd_t i = LEDstartIndex[3]; i < numLED; i++) LEDlevel[i] = intensities[(i + 1) - LEDstartIndex[3]];
+    }
 }
 
 /**
@@ -199,7 +269,7 @@ void breathingLED(unsigned long periodMS) {
  * \param clockwise Direction of rotation, true for clockwise
  * \note Probably going to be pretty choppy if run slowly
  */
-void spinningLED(unsigned long periodMS, bool clockwise = true) {
+void spinningLED(unsigned long periodMS, bool clockwise) {
     const ledlevel_t backgroundIntensity = 10;
     const int numBump = 2; // Number of light "bumps" going around
     const ledInd_t spacing = numLED / numBump;
@@ -238,4 +308,136 @@ void spinningLED(unsigned long periodMS, bool clockwise = true) {
             }
         }
     }
+}
+
+/**
+ * \brief Veritcal wave effect
+ * 
+ * \param periodMS Period for wave from end to end in milliseconds
+ * \param upwards Should the wave move upwards or not
+ */
+void waveVerLED(unsigned long periodMS, bool upwards) {
+    const ledlevel_t endIntensity = 63;
+    const ledlevel_t baseIntensity = 10;
+    const int incrementIntensity = (baseIntensity < endIntensity) ? 1 : -1;
+    const ledlevel_t propagateLevel = 32; // Level to start next row
+
+    static ledInd_t location = 0; // Location of leading row in effect
+    static ledlevel_t rowLevels[numRows] = { 0 };
+    static bool rowGrowing[numRows] = { false }; // Marks if a row's brightness is climbing or not
+
+    static unsigned long nextMark = 0;      // Marks next time to adjust brightness
+    unsigned long currentTime = millis();
+    unsigned int stepMS = periodMS / (numRows * 2 * (incrementIntensity * (endIntensity - baseIntensity)));
+    // Determine approximate time step for each lighting step so rotations are done
+
+    // Check if it is time to adjust effects or not
+    if (nextMark > currentTime) return;
+    nextMark = currentTime + stepMS;
+
+    // Handle potential reset
+    bool restart = checkReset(nextMark, stepMS, currentTime);
+    if (restart == true) {
+        uniformLED(PWM_GAMMA_64[baseIntensity]);
+        if (upwards) location = numRows - 1;
+        else location = 0;
+        return;
+    }
+
+    // Set lighting by rows
+    rowGrowing[location] = true; // Always growing on the leading edge
+
+    for (unsigned int r = 0; r < numRows; r++) {
+        if (rowGrowing[r] == true) {
+            // Climb to end point then start reversing
+            if (rowLevels[r] != endIntensity) rowLevels[r] = rowLevels[r] + incrementIntensity;
+            else rowGrowing[r] = false; // Hit endpoint
+        }
+        else {
+            // Decend until hitting base colour
+            if (rowLevels[r] != baseIntensity) rowLevels[r] = rowLevels[r] - incrementIntensity;
+        } 
+    }
+
+    // Check to propagate
+    if (rowLevels[location] == propagateLevel) {
+        if (upwards) {
+            if (location == (numRows - 1)) {
+                location = 0;
+            }
+            else location++;
+        }
+        else {
+            if (location == 0) {
+                location = numRows - 1;
+            }
+            else location--;
+        }
+    }
+
+    // Paint LEDs using gamma correction
+    paintRows(rowLevels, true);
+}
+
+void waveHorLED(unsigned long periodMS, bool rightwards) {
+    const ledlevel_t endIntensity = 63;
+    const ledlevel_t baseIntensity = 10;
+    const int incrementIntensity = (baseIntensity < endIntensity) ? 1 : -1;
+    const ledlevel_t propagateLevel = 32; // Level to start next row
+
+    static ledInd_t location = 0; // Location of leading row in effect
+    static ledlevel_t colLevels[numCols] = { 0 };
+    static bool colGrowing[numCols] = { false }; // Marks if a row's brightness is climbing or not
+
+    static unsigned long nextMark = 0;      // Marks next time to adjust brightness
+    unsigned long currentTime = millis();
+    unsigned int stepMS = periodMS / (numCols * 2 * (incrementIntensity * (endIntensity - baseIntensity)));
+    // Determine approximate time step for each lighting step so rotations are done
+
+    // Check if it is time to adjust effects or not
+    if (nextMark > currentTime) return;
+    nextMark = currentTime + stepMS;
+
+    // Handle potential reset
+    bool restart = checkReset(nextMark, stepMS, currentTime);
+    if (restart == true) {
+        uniformLED(PWM_GAMMA_64[baseIntensity]);
+        if (rightwards) location = numCols - 1;
+        else location = 0;
+        return;
+    }
+
+    // Set lighting by rows
+    colGrowing[location] = true; // Always growing on the leading edge
+
+    for (unsigned int r = 0; r < numCols; r++) {
+        if (colGrowing[r] == true) {
+            // Climb to end point then start reversing
+            if (colLevels[r] != endIntensity) colLevels[r] = colLevels[r] + incrementIntensity;
+            else colGrowing[r] = false; // Hit endpoint
+        }
+        else {
+            // Decend until hitting base colour
+            if (colLevels[r] != baseIntensity) colLevels[r] = colLevels[r] - incrementIntensity;
+        } 
+    }
+
+    // Check to propagate
+    if (colLevels[location] == propagateLevel) {
+        if (rightwards) {
+            if (location == (numCols - 1)) {
+                location = 0;
+            }
+            else location++;
+        }
+        else {
+            if (location == 0) {
+                location = numCols - 1;
+            }
+            else location--;
+        }
+    }
+
+    // Paint LEDs using gamma correction
+    paintColumns(colLevels, true);
 }
