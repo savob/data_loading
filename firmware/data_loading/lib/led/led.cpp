@@ -137,13 +137,15 @@ bool checkReset(unsigned long mark, unsigned long stepPeriod, unsigned long curT
  * \brief Ensures an index for LEDs is valid, rolls it over if needed
  * 
  * \param ind Index to verify
- * \return Index for the LED in valid range
+ * \param limit Upper limit to rollover at (default is number of LEDs)
+ * 
+ * \return Index in the valid range
  */
-ledInd_t constrainLEDindex(ledInd_t ind) {
-    if ((ind >= 0) && (ind < numLED)) return ind; // Valid
+ledInd_t constrainIndex(ledInd_t ind, ledInd_t limit = numLED) {
+    if ((ind >= 0) && (ind < limit)) return ind; // Valid
 
-    while (ind < 0) ind = ind + numLED; // Brings index into positives
-    ind = ind % numLED; // Deal with it potentially exceeding the limit
+    while (ind < 0) ind = ind + limit; // Brings index into positives
+    ind = ind % limit; // Deal with it potentially exceeding the limit
     // Modulo after ensuring it's positive since modulo acts wierd if you use negatives
 
     return ind;
@@ -157,7 +159,7 @@ ledInd_t constrainLEDindex(ledInd_t ind) {
  * 
  * \note Bottom row is row 0
  */
-void paintColumns(ledlevel_t intensities[], bool gamma) {
+void paintColumns(ledlevel_t intensities[], bool gamma = false) {
     if (gamma == true) {
         // Right side
         for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) LEDlevel[i] = PWM_GAMMA_64[intensities[numRows - i]];
@@ -188,7 +190,7 @@ void paintColumns(ledlevel_t intensities[], bool gamma) {
  * 
  * \note Left column is column 0
  */
-void paintRows(ledlevel_t intensities[], bool gamma) {
+void paintRows(ledlevel_t intensities[], bool gamma = false) {
     if (gamma == true) {
         // Right side
         for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) LEDlevel[i] = PWM_GAMMA_64[intensities[numCols]];
@@ -294,7 +296,7 @@ void breathingLED(unsigned long periodMS) {
  * \param clockwise Direction of rotation, true for clockwise
  * \note Probably going to be pretty choppy if run slowly
  */
-void spinningLED(unsigned long periodMS, bool clockwise) {
+void spinningLED(unsigned long periodMS, bool clockwise = true) {
     const ledlevel_t backgroundIntensity = 10;
     const int numBump = 2; // Number of light "bumps" going around
     const ledInd_t spacing = numLED / numBump;
@@ -321,15 +323,15 @@ void spinningLED(unsigned long periodMS, bool clockwise) {
     }
 
     // Actually enact breathing effect
-    if (clockwise) location = constrainLEDindex(location + 1);
-    else location = constrainLEDindex(location - 1);
+    if (clockwise) location = constrainIndex(location + 1);
+    else location = constrainIndex(location - 1);
 
     for (int_fast8_t b = 0; b < numBump; b++) {
         ledInd_t baseAddress = location + (b * spacing);
 
         for (ledInd_t offset = 0; offset < numStages; offset++) {
-            ledInd_t ahead = constrainLEDindex(baseAddress + offset);
-            ledInd_t behind = constrainLEDindex(baseAddress - offset);
+            ledInd_t ahead = constrainIndex(baseAddress + offset);
+            ledInd_t behind = constrainIndex(baseAddress - offset);
             LEDgamma[ahead] = stages[offset];
             LEDgamma[behind] = stages[offset];
         }
@@ -344,7 +346,7 @@ void spinningLED(unsigned long periodMS, bool clockwise) {
  * \param periodMS Period for wave from end to end in milliseconds
  * \param upwards Should the wave move upwards or not
  */
-void waveVerLED(unsigned long periodMS, bool upwards) {
+void waveVerLED(unsigned long periodMS, bool upwards = true) {
     const ledlevel_t endIntensity = 63;
     const ledlevel_t baseIntensity = 10;
     const int incrementIntensity = (baseIntensity < endIntensity) ? 1 : -1;
@@ -413,7 +415,7 @@ void waveVerLED(unsigned long periodMS, bool upwards) {
  * \param periodMS Period for wave from end to end in milliseconds
  * \param rightwards Should the wave scroll rightwards or not
  */
-void waveHorLED(unsigned long periodMS, bool rightwards) {
+void waveHorLED(unsigned long periodMS, bool rightwards = true) {
     const ledlevel_t endIntensity = 63;
     const ledlevel_t baseIntensity = 10;
     const int incrementIntensity = (baseIntensity < endIntensity) ? 1 : -1;
@@ -485,7 +487,7 @@ void waveHorLED(unsigned long periodMS, bool rightwards) {
 void cloudLED(unsigned long stepMS) {
     const ledlevel_t maxIntensity = 63;
     const ledlevel_t minIntensity = 10;
-    const unsigned int numAdjust = 3;            // How many LEDs get adjusted per cycle
+    const unsigned int numAdjust = 3; // How many LEDs get adjusted per cycle
 
     static unsigned long nextMark = 0;      // Marks next time to adjust brightness
     unsigned long currentTime = millis();
@@ -513,7 +515,7 @@ void cloudLED(unsigned long stepMS) {
             // Need to use entirely independant bits for each part of a change to avoid correlations
             unsigned long temp = random();
             increase[i] = temp & 1;
-            target[i] = constrainLEDindex(temp >> 1); // Discard direction bit for location calculation
+            target[i] = constrainIndex(temp >> 1); // Discard direction bit for location calculation
 
             for (uint_fast8_t c = 0; c < i; c++) {
                 if (target[c] == target[i]) uniqueChange = false;
