@@ -98,6 +98,9 @@ void LEDfsm(ledFSMstates state, uint8_t buttons) {
     case ledFSMstates::WAVE_VERT:
         waveVerLED(3000, false);
         break;
+    case ledFSMstates::CLOUD:
+        cloudLED(10);
+        break;
     
     default: // Solid is default case
         uniformLED(128);
@@ -471,4 +474,57 @@ void waveHorLED(unsigned long periodMS, bool rightwards) {
 
     // Paint LEDs using gamma correction
     paintColumns(colLevels, true);
+}
+
+/**
+ * \brief Randomly adjusts brightness around entire perimeter
+ * \note Kind of like a lava lamp
+ * 
+ * \param stepMS Period in milliseconds between each adjustment cycle
+ */
+void cloudLED(unsigned long stepMS) {
+    const ledlevel_t maxIntensity = 63;
+    const ledlevel_t minIntensity = 10;
+    const unsigned int numAdjust = 3;            // How many LEDs get adjusted per cycle
+
+    static unsigned long nextMark = 0;      // Marks next time to adjust brightness
+    unsigned long currentTime = millis();
+
+    // Check if it is time to adjust effects or not
+    if (nextMark > currentTime) return;
+
+    // Handle potential reset
+    bool restart = checkReset(nextMark, stepMS, currentTime);
+    nextMark = currentTime + stepMS; // Update mark after reset check
+    if (restart == true) {
+        // Reset to middle light level
+        uniformGamma((minIntensity + maxIntensity) / 2);
+        return;
+    }
+
+    // Come up with the adjustments to make
+    bool increase[numAdjust] = {false};
+    ledInd_t target[numAdjust] = {0};
+
+    for (uint_fast8_t i = 0; i < numAdjust; i++) {
+
+        bool uniqueChange = true;
+        do {
+            // Need to use entirely independant bits for each part of a change to avoid correlations
+            unsigned long temp = random();
+            increase[i] = temp & 1;
+            target[i] = constrainLEDindex(temp >> 1); // Discard direction bit for location calculation
+
+            for (uint_fast8_t c = 0; c < i; c++) {
+                if (target[c] == target[i]) uniqueChange = false;
+            }
+        } while (uniqueChange == false);
+    }
+    
+    // Enact the changes if valid
+    for (uint_fast8_t i = 0; i < numAdjust; i++) {
+        if ((increase[i] == true) && (LEDgamma[target[i]] < maxIntensity)) LEDgamma[target[i]]++;
+        if ((increase[i] == false) && (LEDgamma[target[i]] > minIntensity)) LEDgamma[target[i]]--;
+    }
+    copyGammaIntoBuffer();
 }

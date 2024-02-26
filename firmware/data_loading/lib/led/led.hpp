@@ -50,4 +50,5 @@ void uniformLED(ledlevel_t intensity);
 void spinningLED(unsigned long periodMS, bool clockwise);
 void waveVerLED(unsigned long periodMS, bool upwards = true);
 void waveHorLED(unsigned long periodMS, bool rightwards = true);
+void cloudLED(unsigned long stepMS);
 #endif
