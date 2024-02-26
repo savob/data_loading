@@ -69,5 +69,9 @@ void loop() {
   FFTleft.ComplexToMagnitude();
   // Magnitude is in `vReal_x` arrays
 
+  LEDfsm(ledFSMstates::BREATH, 0);
+  remap(drivers);
+  drivers[0].updateDuties();
+  drivers[1].updateDuties();
   delay(1);
 }
