@@ -530,3 +530,115 @@ void cloudLED(unsigned long stepMS) {
     }
     copyGammaIntoBuffer();
 }
+
+/**
+ * \brief Tracking lines effect (randomly have columns swap)
+ * 
+ * \param stepMS Period in milliseconds between each adjustment cycle
+ * \param swapDurMS Duration a swap should last in milliseconds (default is 500)
+ * \param widthSwap Distance of columns to be swapped (default is 3)
+ * \param probOfSwap Likelihood of a swap per cycle out of 255 (default is 3)
+ * 
+ * \note Idle effect is that of cloud but done in columns for visible swapping
+ */
+void trackingLED(unsigned long stepMS, unsigned long swapDurMS = 500,
+                 unsigned int widthSwap = 3, uint8_t probOfSwap = 3) {
+    const ledlevel_t maxIntensity = 63;
+    const ledlevel_t minIntensity = 10;
+    static ledlevel_t colIntensity[numCols] = {0};
+    const unsigned int numAdjust = 3;   // How many columns get adjusted per cycle
+    const unsigned int numSwaps = 2;    // Number of possible simultanious swaps
+
+    struct swap_t {
+        bool enabled = false;       // Is this swap active?
+        unsigned long endTime = 0;  // When to deactivate (based on `millis()` time)
+        ledInd_t location = 0;      // What is the start of this swap
+    } swaps[numSwaps];
+
+    static unsigned long nextMark = 0;      // Marks next time to adjust brightness
+    unsigned long currentTime = millis();
+
+    // Check if it is time to adjust effects or not
+    if (nextMark > currentTime) return;
+
+    // Handle potential reset
+    bool restart = checkReset(nextMark, stepMS, currentTime);
+    nextMark = currentTime + stepMS; // Update mark after reset check
+    if (restart == true) {
+        // Reset to middle light level
+        for (ledInd_t i = 0; i < numCols; i++) colIntensity[i] = (minIntensity + maxIntensity) / 2;
+        paintColumns(colIntensity);
+
+        // Reset swaps
+        for (unsigned int i = 0; i < numSwaps; i++) swaps[i].enabled = false;
+        return;
+    }
+
+    // Come up with the adjustments to make
+    bool increase[numAdjust] = {false};
+    ledInd_t target[numAdjust] = {0};
+
+    for (uint_fast8_t i = 0; i < numAdjust; i++) {
+
+        bool uniqueChange = true;
+        do {
+            // Need to use entirely independant bits for each part of a change to avoid correlations
+            unsigned long temp = random();
+            increase[i] = temp & 1;
+            target[i] = constrainIndex((temp >> 1), numCols); // Discard direction bit for location calculation
+
+            for (uint_fast8_t c = 0; c < i; c++) {
+                if (target[c] == target[i]) uniqueChange = false;
+            }
+        } while (uniqueChange == false);
+    }
+    
+    // Enact the changes if valid
+    for (uint_fast8_t i = 0; i < numAdjust; i++) {
+        if ((increase[i] == true) && (colIntensity[target[i]] < maxIntensity)) colIntensity[target[i]]++;
+        if ((increase[i] == false) && (colIntensity[target[i]] > minIntensity)) colIntensity[target[i]]--;
+    }
+
+    // Work through swaps
+    for (unsigned int i = 0; i < numSwaps; i++) {
+        if (swaps[i].enabled == true) {
+            if (currentTime > swaps[i].endTime) {
+                swaps[i].enabled = false;
+
+                // Undo the swap
+                ledlevel_t temp = colIntensity[swaps[i].location];
+                colIntensity[swaps[i].location] = colIntensity[constrainIndex(swaps[i].location + widthSwap, numCols)];
+                colIntensity[constrainIndex(swaps[i].location + widthSwap, numCols)] = temp;
+            }
+        }
+        else {
+            // Check if it should swap
+            unsigned long roll = random();
+            swaps[i].enabled = (roll & 0xFF) < probOfSwap;
+
+            if (!swaps[i].enabled) continue;
+
+            swaps[i].endTime = currentTime + swapDurMS;
+
+            // Generate a swap that doesn't overlap another currently active swap
+            bool uniqueSwap = true;
+            do {
+                roll = random();
+                swaps[i].location = constrainIndex(roll, numCols);
+
+                for (uint_fast8_t c = 0; c < numSwaps; c++) {
+                    if (swaps[c].enabled == false) continue;
+                    if (swaps[i].location == swaps[c].location) uniqueSwap = false;
+                    if (swaps[i].location == constrainIndex(swaps[c].location + widthSwap, numCols)) uniqueSwap = false;
+                }
+            } while (uniqueSwap == false);
+
+            // Perform the swap
+            ledlevel_t temp = colIntensity[swaps[i].location];
+            colIntensity[swaps[i].location] = colIntensity[constrainIndex(swaps[i].location + widthSwap, numCols)];
+            colIntensity[constrainIndex(swaps[i].location + widthSwap, numCols)] = temp;
+        }
+    }
+
+    paintColumns(colIntensity, true);
+}

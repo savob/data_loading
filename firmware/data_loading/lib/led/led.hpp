@@ -51,4 +51,5 @@ void spinningLED(unsigned long periodMS, bool clockwise);
 void waveVerLED(unsigned long periodMS, bool upwards);
 void waveHorLED(unsigned long periodMS, bool rightwards);
 void cloudLED(unsigned long stepMS);
+void trackingLED(unsigned long stepMS, unsigned long swapDurMS, unsigned int widthSwap, uint8_t probOfSwap);
 #endif
