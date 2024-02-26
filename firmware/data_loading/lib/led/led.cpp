@@ -101,6 +101,9 @@ void LEDfsm(ledFSMstates state, uint8_t buttons) {
     case ledFSMstates::CLOUD:
         cloudLED(10);
         break;
+    case ledFSMstates::TRACKING:
+        trackingLED(10, 500, 2, 3);
+        break;
     
     default: // Solid is default case
         uniformLED(128);
