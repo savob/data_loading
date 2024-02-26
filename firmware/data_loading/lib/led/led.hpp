@@ -39,9 +39,9 @@ void remap(IS31FL3236 drvrs[]);
 void LEDfsm(ledFSMstates state, uint8_t buttons);
 
 bool checkReset(unsigned long mark, unsigned long stepPeriod, unsigned long curTime);
-ledInd_t constrainLEDindex(ledInd_t ind);
-void paintColumns(ledlevel_t intensities[], bool gamma = false);
-void paintRows(ledlevel_t intensities[], bool gamma = false);
+ledInd_t constrainIndex(ledInd_t ind, ledInd_t limit);
+void paintColumns(ledlevel_t intensities[], bool gamma);
+void paintRows(ledlevel_t intensities[], bool gamma);
 void copyGammaIntoBuffer();
 void uniformGamma(ledlevel_t gamma);
 
