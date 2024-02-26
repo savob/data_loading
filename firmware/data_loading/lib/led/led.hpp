@@ -42,6 +42,8 @@ bool checkReset(unsigned long mark, unsigned long stepPeriod, unsigned long curT
 ledInd_t constrainLEDindex(ledInd_t ind);
 void paintColumns(ledlevel_t intensities[], bool gamma = false);
 void paintRows(ledlevel_t intensities[], bool gamma = false);
+void copyGammaIntoBuffer();
+void uniformGamma(ledlevel_t gamma);
 
 void breathingLED(unsigned long periodMS);
 void uniformLED(ledlevel_t intensity);

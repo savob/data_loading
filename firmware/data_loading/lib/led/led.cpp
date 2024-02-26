@@ -7,7 +7,8 @@ const ledInd_t numLED = 72;
 const ledInd_t numRows = 8;
 const ledInd_t numCols = 30;
 
-ledlevel_t LEDlevel[numLED] = {0};
+ledlevel_t LEDlevel[numLED] = {0}; // Actual LED brightness
+ledlevel_t LEDgamma[numLED] = {0}; // Used to store LED gamma levels. Must be copied into actual buffer.
 ledInd_t LEDstartIndex[] = {0, 8, 38, 44};
 ledInd_t LEDmiddleIndex[] = {4, 23, 41, 58};
 ledInd_t LEDbutton[] = {44, 42, 40, 38};
@@ -80,6 +81,10 @@ void remap(IS31FL3236 drvrs[]) {
 void LEDfsm(ledFSMstates state, uint8_t buttons) {
     static ledFSMstates prevState = ledFSMstates::SOLID;
 
+    if (prevState != state) {
+        // Do we want some sort of gradual shift between states?
+    }
+
     switch (state) {
     case ledFSMstates::BREATH:
         breathingLED(5000);
@@ -142,7 +147,7 @@ ledInd_t constrainLEDindex(ledInd_t ind) {
 }
 
 /**
- * \brief Paints the LEDs in each row a uniform brightness
+ * \brief Paints the LEDs in each column a uniform brightness
  * 
  * \param intensities Array of intensities to paint on the rows
  * \param gamma Are intensities gamma levels or not? (0 to 63)
@@ -173,7 +178,7 @@ void paintColumns(ledlevel_t intensities[], bool gamma) {
 }
 
 /**
- * \brief Paints the LEDs in each column a 
+ * \brief Paints the LEDs in each row a uniform brightness
  * 
  * \param intensities Array of intensities to paint on the columns
  * \param gamma Are intensities gamma levels or not? (0 to 63)
@@ -204,6 +209,24 @@ void paintRows(ledlevel_t intensities[], bool gamma) {
 }
 
 /**
+ * \brief Copies the gamma brightness buffer into the actual light intensity buffer
+ * 
+ */
+void copyGammaIntoBuffer() {
+    for (ledInd_t i = 0; i < numLED; i++) LEDlevel[i] = PWM_GAMMA_64[LEDgamma[i]];
+}
+
+/**
+ * \brief Sets LEDs to a uniform gamma level
+ * 
+ * \param gamma Gamma level
+ */
+void uniformGamma(ledlevel_t gamma) {
+    for (ledInd_t i = 0; i < numLED; i++) LEDgamma[i] = gamma;
+    copyGammaIntoBuffer();
+}
+
+/**
  * \brief Sets all LEDs to a uniform brightness
  * 
  * \param intensity LED level to set
@@ -220,46 +243,45 @@ void uniformLED(ledlevel_t intensity) {
  */
 void breathingLED(unsigned long periodMS) {
     const ledlevel_t maxIntensity = 63;
+    const ledlevel_t minIntensity = 0;
     const ledlevel_t intensityStep = 1;
 
     static ledlevel_t breathingIntensity = 0;
     static unsigned long nextMark = 0;      // Marks next time to adjust brightness
     static bool climbing = true;            // True if brightness is to climb
-
     unsigned long currentTime = millis();
+
+    if (nextMark > currentTime) return; // Wait for effect mark
 
     // Determine approximate time step for each lighting step so a complete up-down cycle is done
     unsigned int stepMS = periodMS / (2 * (maxIntensity / intensityStep));
 
+    // Check and handle resets
     bool restart = checkReset(nextMark, stepMS, currentTime);
-
+    nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
-        breathingIntensity = 0;
+        breathingIntensity = minIntensity;
         climbing = true;
-        nextMark = currentTime + stepMS;
-    }
-    else if (nextMark < currentTime) {
-        nextMark = currentTime + stepMS;
-
-        if (climbing) {
-            breathingIntensity += intensityStep;
-            if (breathingIntensity > maxIntensity) {
-                breathingIntensity = maxIntensity;
-                climbing = false;
-            }
-        }
-        else {
-            breathingIntensity -= intensityStep;
-            if (breathingIntensity <= 0) {
-                breathingIntensity = 0;
-                climbing = true;
-            }
-        }
+        uniformGamma(breathingIntensity);
+        return;
     }
 
-    // Set all lights to gamma corrected values
-    uniformLED(PWM_GAMMA_64[breathingIntensity]);
-    //uniform(breathingIntensity);
+    // Actually enact effect
+    if (climbing) {
+        if (breathingIntensity >= maxIntensity) {
+            breathingIntensity = maxIntensity;
+            climbing = false;
+        }
+        else breathingIntensity += intensityStep;
+    }
+    else {
+        if (breathingIntensity <= minIntensity) {
+            breathingIntensity = minIntensity;
+            climbing = true;
+        }
+        else breathingIntensity -= intensityStep;
+    }
+    uniformGamma(breathingIntensity);
 }
 
 /**
@@ -282,36 +304,39 @@ void spinningLED(unsigned long periodMS, bool clockwise) {
     static unsigned long nextMark = 0;      // Marks next time to adjust brightness
     unsigned long currentTime = millis();
 
+    if (nextMark > currentTime) return; // Wait for effect mark
+
     // Determine approximate time step for each lighting step so rotations are done
     unsigned int stepMS = periodMS / numLED;
 
+    // Check and handle resets
     bool restart = checkReset(nextMark, stepMS, currentTime);
-
+    nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
-        uniformLED(PWM_GAMMA_64[backgroundIntensity]);
-        nextMark = currentTime + stepMS;
+        uniformGamma(backgroundIntensity);
+        return;
     }
-    else if (nextMark < currentTime) {
-        nextMark = currentTime + stepMS;
 
-        if (clockwise) location = constrainLEDindex(location++);
-        else location = constrainLEDindex(location--);
+    // Actually enact breathing effect
+    if (clockwise) location = constrainLEDindex(location + 1);
+    else location = constrainLEDindex(location - 1);
 
-        for (int_fast8_t b = 0; b < numBump; b++) {
-            ledInd_t baseAddress = location + (b * spacing);
+    for (int_fast8_t b = 0; b < numBump; b++) {
+        ledInd_t baseAddress = location + (b * spacing);
 
-            for (ledInd_t offset = 0; offset < numStages; offset++) {
-                ledInd_t ahead = constrainLEDindex(baseAddress + offset);
-                ledInd_t behind = constrainLEDindex(baseAddress - offset);
-                LEDlevel[ahead] = stages[offset];
-                LEDlevel[behind] = stages[offset];
-            }
+        for (ledInd_t offset = 0; offset < numStages; offset++) {
+            ledInd_t ahead = constrainLEDindex(baseAddress + offset);
+            ledInd_t behind = constrainLEDindex(baseAddress - offset);
+            LEDgamma[ahead] = stages[offset];
+            LEDgamma[behind] = stages[offset];
         }
     }
+
+    copyGammaIntoBuffer();
 }
 
 /**
- * \brief Veritcal wave effect
+ * \brief Vertical wave effect
  * 
  * \param periodMS Period for wave from end to end in milliseconds
  * \param upwards Should the wave move upwards or not
@@ -333,10 +358,10 @@ void waveVerLED(unsigned long periodMS, bool upwards) {
 
     // Check if it is time to adjust effects or not
     if (nextMark > currentTime) return;
-    nextMark = currentTime + stepMS;
 
     // Handle potential reset
     bool restart = checkReset(nextMark, stepMS, currentTime);
+    nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
         uniformLED(PWM_GAMMA_64[baseIntensity]);
         if (upwards) location = numRows - 1;
@@ -379,6 +404,12 @@ void waveVerLED(unsigned long periodMS, bool upwards) {
     paintRows(rowLevels, true);
 }
 
+/**
+ * \brief Horizontal wave effect
+ * 
+ * \param periodMS Period for wave from end to end in milliseconds
+ * \param rightwards Should the wave scroll rightwards or not
+ */
 void waveHorLED(unsigned long periodMS, bool rightwards) {
     const ledlevel_t endIntensity = 63;
     const ledlevel_t baseIntensity = 10;
@@ -396,10 +427,10 @@ void waveHorLED(unsigned long periodMS, bool rightwards) {
 
     // Check if it is time to adjust effects or not
     if (nextMark > currentTime) return;
-    nextMark = currentTime + stepMS;
 
     // Handle potential reset
     bool restart = checkReset(nextMark, stepMS, currentTime);
+    nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
         uniformLED(PWM_GAMMA_64[baseIntensity]);
         if (rightwards) location = numCols - 1;
