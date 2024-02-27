@@ -1776,7 +1776,7 @@
     (uuid fdfd6b46-2895-43b5-a65f-60526dfed656)
   )
 
-  (text_box "I^{2}C Address of these is 01111xx0 where xx is set by AD connection\nGND, xx is 00\nVCC, xx is 11\nSCL, xx is 01\nSDA, xx is 10"
+  (text_box "I^{2}C Address of these is 01111xx where xx is set by AD connection\nGND, xx is 00\nVCC, xx is 11\nSCL, xx is 01\nSDA, xx is 10"
     (at 69.85 173.99 0) (size 69.85 11.43)
     (stroke (width 0) (type default))
     (fill (type none))

@@ -25,8 +25,8 @@ arduinoFFT FFTleft = arduinoFFT(vReal_L, vImag_L, samples, samplingFrquency);
 TwoWire i2cBus(12, 13);
 
 IS31FL3236 drivers[] = {
-  IS31FL3236(0b01111000, 15, &i2cBus),
-  IS31FL3236(0b01111110, 16, &i2cBus)
+  IS31FL3236(0x3C, 15, &i2cBus),
+  IS31FL3236(0x3F, 16, &i2cBus)
 };
 
 Cap1206 touch(&i2cBus);
