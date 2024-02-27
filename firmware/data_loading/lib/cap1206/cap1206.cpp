@@ -5,7 +5,7 @@
 const int CAP1206_TRANSFER_FAIL = -1;
 const int CAP1206_TRANSFER_SUCCESS = 0;
 
-uint8_t defaultThresholds[] = {64, 64, 64, 64, 64, 64};
+uint8_t defaultThresholds[] = {64, 64, 64, 64, 10, 10};
 
 /**
  * \brief Construct a new CAP1206 object
@@ -29,10 +29,9 @@ int Cap1206::writeSingleReg(RegistersCap1206 reg, uint8_t val) {
     interface->beginTransmission(ADDRESS_CAP); 
     count = interface->write(reg);
     count = count + interface->write(val);
-    interface->endTransmission();
 
     // Check if both fields were communicated correctly
-    if (count == 2) return CAP1206_TRANSFER_SUCCESS;
+    if ((count == 2) && (interface->endTransmission() == 0)) return CAP1206_TRANSFER_SUCCESS;
     return CAP1206_TRANSFER_FAIL;
 }
 
@@ -64,20 +63,17 @@ int Cap1206::readManyRegs(RegistersCap1206 reg, uint8_t num, uint8_t* tar) {
     // Send address, then draw data
     interface->beginTransmission(ADDRESS_CAP); 
     count = interface->write(reg);
-    interface->endTransmission();
+    if ((interface->endTransmission(false) != 0) || (count != 1)) return CAP1206_TRANSFER_FAIL; // End message but not with stop
 
     interface->beginTransmission(ADDRESS_CAP); 
     count = interface->requestFrom(ADDRESS_CAP, num);
-    interface->endTransmission();
+    if ((interface->endTransmission() != 0) || (count != num)) return CAP1206_TRANSFER_FAIL;
 
-    // Check if all data was communicated correctly
-    if (count == (1 + num)) {
-        for (uint_fast8_t i = 0; i < num; i++) {
-            tar[i] = interface->read();
-        }
-        return CAP1206_TRANSFER_SUCCESS;
+    // Copy if all data was communicated correctly
+    for (uint_fast8_t i = 0; i < num; i++) {
+        tar[i] = interface->read();
     }
-    return CAP1206_TRANSFER_FAIL;
+    return CAP1206_TRANSFER_SUCCESS;
 }
 
 /**
@@ -209,7 +205,10 @@ int Cap1206::readSensors(bool target[]) {
  * \return Return status of the transfer 
  */
 int Cap1206::readSensors(uint8_t* target) {
-    return readSingleReg(RegistersCap1206::SENSOR_INPUT, target);
+    if(readSingleReg(RegistersCap1206::SENSOR_INPUT, target) != CAP1206_TRANSFER_SUCCESS) return CAP1206_TRANSFER_FAIL;
+
+    // Need to clear interrupt to reset button states
+    return clearInterrupt();
 }
 
 /**
@@ -491,7 +490,7 @@ int Cap1206::enableInterrupt(bool sensors[]) {
 /**
  * \brief Enable interrupt events on selected sensors on the CAP1206
  * 
- * \param sensors Mask of which buttons to calibrate 
+ * \param sensors Mask of which buttons to enable interrupts on 
  * \return Return status of the transfer 
  */
 int Cap1206::enableInterrupt(uint8_t sensors) {
@@ -551,6 +550,61 @@ int Cap1206::setButtonThreshold(uint8_t but, uint8_t thres) {
 }
 
 /**
+ * \brief Reads the delta count register for a given button
+ * 
+ * \param target Location to record the delta count
+ * \note Buttons are indexed from 0 in this code but the data sheet starts at 1
+ * \param but Index of the button of interest
+ * \return Return status of the transfer 
+ */
+int Cap1206::readDelta(uint8_t* target, uint8_t but) {
+    switch (but) {
+    case 1:
+        return readSingleReg(RegistersCap1206::DELTA_2, target);
+    case 2:
+        return readSingleReg(RegistersCap1206::DELTA_3, target);
+    case 3:
+        return readSingleReg(RegistersCap1206::DELTA_4, target);
+    case 4:
+        return readSingleReg(RegistersCap1206::DELTA_5, target);
+    case 5:
+        return readSingleReg(RegistersCap1206::DELTA_6, target);
+    default: // Default to reading for button 1
+        return readSingleReg(RegistersCap1206::DELTA_1, target);
+    }
+}
+
+/**
+ * \brief Set the multiple touch detection configuration
+ * 
+ * \param en Enable or disable the multiple touch detection system
+ * \param blockNum Number of simultaneous touches before blocking, from 1 to 4
+ * \return Return status of the transfer 
+ */
+int Cap1206::setMultiTouchConfig(bool en, uint8_t blockNum) {
+    uint8_t temp = 0;
+
+    if (en == true) temp |= (1 << 7);
+
+    switch (blockNum) {
+    case 2:
+        temp |= (1 << 3);
+        break;
+    case 3:
+        temp |= (2 << 3);
+        break;
+    case 4:
+        temp |= (3 << 3);
+        break;
+    default: // Default to 1 button blocking (as is device default)
+        temp |= (0 << 3);
+        break;
+    }
+
+    return writeSingleReg(RegistersCap1206::MUL_TOUCH_CONF, temp);
+}
+
+/**
  * \brief Updates all the button thresholds
  * 
  * \param thres Array of thresholds for the button thresholds (0 - 127 inclusive, will be clamped). Must be of size 6.
@@ -571,8 +625,38 @@ int Cap1206::setButtonThresholds(uint8_t thres[]) {
     interface->endTransmission();
 
     // Check if all the data was communicated correctly
-    if (count == 7) return CAP1206_TRANSFER_SUCCESS;
+    if ((count == 7) && (interface->endTransmission() == 0)) return CAP1206_TRANSFER_SUCCESS;
     return CAP1206_TRANSFER_FAIL;
+}
+
+/**
+ * \brief Reads the ID from the CAP1206 chip
+ * 
+ * \param id Location to store the returned ID, should be 0x67
+ * \return Return status of the transfer 
+ */
+int Cap1206::readProductID(uint8_t* id) {
+    return readSingleReg(RegistersCap1206::PROD_ID, id);
+}
+
+/**
+ * \brief Reads the manufacturer ID from the CAP1206 chip
+ * 
+ * \param id Location to store the returned ID, should be 0x5D
+ * \return Return status of the transfer 
+ */
+int Cap1206::readManufacturerID(uint8_t* id) {
+    return readSingleReg(RegistersCap1206::MANU_ID, id);
+}
+
+/**
+ * \brief Returns the chip revision for the CAP1206
+ * 
+ * \param rev Location to store the returned revision number
+ * \return Return status of the transfer 
+ */
+int Cap1206::readRevision(uint8_t* rev) {
+    return readSingleReg(RegistersCap1206::REV, rev);
 }
 
 /**
@@ -591,17 +675,22 @@ int Cap1206::initialize() {
     if (setSensitivity(DeltaSensitivityCap1206::MUL_032, BaseShiftCap1206::SACLE_256) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     if (setConfig1(false, false, false, true) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     if (setConfig2(true, true, false, false, false, false, false) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
-    if (enableSensors((uint8_t)(0b111111)) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
-    if (enableRepeat((uint8_t)(0b111111)) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
+    
+    // Only enabling the tabs buttons (no 'DA' nor 'TA' due to sensitivity issues)
+    if (enableSensors((uint8_t)(0x0F)) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
+    if (enableRepeat((uint8_t)(0x0F)) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
+    
     if (setSensorInputConfig1(MaxDurationcap1206::MAX_DUR_05600, RepeatRateCap1206::REP_RATE_175) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     if (setSensorInputConfig2(MinForRepeatCap1206::MIN_PER_420) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     if (setAverageAndSampling(AveragedSamplesCap1206::SMPL_008, SampleTimeCap1206::US_1280, CycleTime1206::MS_070) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     if (setSensorInputNoiseThreshold(SensNoiseThrsCap1206::PER_375) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
-    if (setCalibrations((uint8_t)(0b111111)) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL; // Calibrate all sensors on start
-    if (enableInterrupt((uint8_t)(0b000000)) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
+    if (setCalibrations((uint8_t)(0x3F)) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL; // Calibrate all sensors on start
+    if (enableInterrupt((uint8_t)(0x00)) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     if (setRecalConfig(false, false, false, NegDeltaCountCap1206::COUNT_16, CalConfigCap1206::CNT_064_TIME_0064) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
-
-    setButtonThresholds(defaultThresholds);
-
+    if (setButtonThresholds(defaultThresholds) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
+    
+    // Currently disabling multiple touch detection and blocking
+    if (setMultiTouchConfig(false, 4) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
+    
     return CAP1206_TRANSFER_SUCCESS;
 }

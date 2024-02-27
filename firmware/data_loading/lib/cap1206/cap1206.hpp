@@ -4,9 +4,6 @@
 #include <Arduino.h>
 #include <Wire.h>
 
-extern const int CAP1206_TRANSFER_FAIL;
-extern const int CAP1206_TRANSFER_SUCCESS;
-
 /* Bare-bones library for the CAP1206 sensor
     Definitely needs some work to polish up and complete to cover all the 
     features offered by this chip. However only working on what is strictly
@@ -19,6 +16,14 @@ extern const int CAP1206_TRANSFER_SUCCESS;
     - Reading back some values related to configuration/calibration
     - Interrupt stuff
 */
+
+extern const int CAP1206_TRANSFER_FAIL;
+extern const int CAP1206_TRANSFER_SUCCESS;
+
+/**
+ * \brief List of all the registers available in the CAP1206
+ * 
+ */
 enum RegistersCap1206 : uint8_t {
     MAIN_CTRL           = 0x00,
     GEN_STATUS          = 0x02,
@@ -255,6 +260,13 @@ public:
     int setRecalConfig(bool ldth, bool clrint, bool clrneg, NegDeltaCountCap1206 negcnt, CalConfigCap1206 cal);
     int setButtonThreshold(uint8_t but, uint8_t thres);
     int setButtonThresholds(uint8_t thres[]);
+
+    int readDelta(uint8_t* target, uint8_t but);
+    int setMultiTouchConfig(bool en, uint8_t blockNum);
+
+    int readProductID(uint8_t* id);
+    int readManufacturerID(uint8_t* id);
+    int readRevision(uint8_t* rev);
 };
 
 #endif
