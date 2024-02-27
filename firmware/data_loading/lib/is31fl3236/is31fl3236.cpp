@@ -147,11 +147,6 @@ int IS31FL3236::initialize() {
     if (softwareShutdown(false) == IS31_TRANSFER_FAIL) return IS31_TRANSFER_FAIL;
     if (setPWMfrequency(FrequencyIS31FL3236::KHz_22) == IS31_TRANSFER_FAIL) return IS31_TRANSFER_FAIL;
     if (globalEnable(true) == IS31_TRANSFER_FAIL) return IS31_TRANSFER_FAIL;
-
-    for (uint_fast8_t i = 0; i < 36; i++) {
-        channelConfig[i].state = true;
-        channelConfig[i].currentLimit = CurrentSettingIS31FL3236::FULL;
-    }
     if (updateChannelConfigurations() == IS31_TRANSFER_FAIL) return IS31_TRANSFER_FAIL;
 
     return IS31_TRANSFER_SUCCESS;
