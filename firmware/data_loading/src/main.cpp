@@ -1,26 +1,8 @@
-// Lightly modified code for an RPi Pico spectrum analyzer http://radiopench.blog96.fc2.com/ 
-
 #include <Arduino.h>
 #include <Wire.h>
-#include "arduinoFFT.h"
 #include "is31fl3236.hpp"
 #include "cap1206.hpp"
 #include "led.hpp"
-
-const pin_size_t R_IN = 26;
-const pin_size_t L_IN = 27;
-
-const uint16_t samples = 128;
-const double samplingFrquency = 25641;
-double vReal_R[samples];
-double vImag_R[samples];
-double vReal_L[samples];
-double vImag_L[samples];
-int16_t wave_R[samples];
-int16_t wave_L[samples];
-
-arduinoFFT FFTright = arduinoFFT(vReal_R, vImag_R, samples, samplingFrquency);
-arduinoFFT FFTleft = arduinoFFT(vReal_L, vImag_L, samples, samplingFrquency);
 
 TwoWire i2cBus(12, 13);
 
@@ -29,49 +11,34 @@ IS31FL3236 drivers[] = {
   IS31FL3236(0x3F, 16, &i2cBus)
 };
 
-Cap1206 touch(&i2cBus);
+//Cap1206 touch(&i2cBus);
 
 void setup() {
-  Serial.begin(115200);
-  analogReadResolution(12);
-  delay(1000);
+  Serial.begin(9600);
+  //while (!Serial) delay(10); // Wait for USB to open for debug messages
+  
+  Serial.println("STARTING DATA BOARD....");
 
   initializeLED(drivers);
+  Serial.println("LED Driver settings selected");
 
-  drivers[0].initialize();
-  drivers[1].initialize();
+  int test[2];
+  test[0] = drivers[0].initialize();
+  test[1] = drivers[1].initialize();
+  if ((test[0] == IS31_TRANSFER_SUCCESS) && (test[1] == IS31_TRANSFER_SUCCESS)) {
+    Serial.println("LED DRIVERS CONFIGURED SUCCESSFULLY");
+  }
+  else Serial.println("LED DRIVER SETUP ERROR");
   
-  touch.initialize();
+  //touch.initialize();
+
+  delay(2000);
 }
 
 void loop() {
-  for (int i = 0; i < samples; i++) {
-    wave_R[i] = analogRead(R_IN);
-    wave_L[i] = analogRead(L_IN);
-    delayMicroseconds(21); // Maintain 39us sampling period
-  } // (5ms)
-
-  // FFT Data preparation (1.7ms)
-  for (int i = 0; i < samples; i++) {
-    vReal_R[i] = (wave_R[i] - 2048) * 3.3 / 4096.0;
-    vReal_L[i] = (wave_L[i] - 2048) * 3.3 / 4096.0;
-    vImag_R[i] = 0;
-    vImag_L[i] = 0;
-  }
-  // FFT Calculation  (33ms)
-  FFTright.Windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
-  FFTleft.Windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
-
-  FFTright.Compute(FFT_FORWARD);
-  FFTleft.Compute(FFT_FORWARD);
-
-  FFTright.ComplexToMagnitude();
-  FFTleft.ComplexToMagnitude();
-  // Magnitude is in `vReal_x` arrays
-
   LEDfsm(ledFSMstates::BREATH, 0);
   remap(drivers);
   drivers[0].updateDuties();
   drivers[1].updateDuties();
-  delay(1);
+  delay(10);
 }
