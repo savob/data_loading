@@ -14,7 +14,7 @@ IS31FL3236 drivers[] = {
 Cap1206 touch(&i2cBus);
 
 void setup() {
-    Serial.begin(9600);
+    Serial.begin(112500);
     //while (!Serial) delay(10); // Wait for USB to open for debug messages
     
     Serial.println("STARTING DATA BOARD....");
