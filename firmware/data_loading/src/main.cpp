@@ -19,17 +19,17 @@ IS31FL3236 drivers[] = {
 Cap1206 touch(&i2cBus);
 
 void setup() {
-    Serial.begin(112500);
-    // while (!Serial) delay(10); // Wait for USB to open for debug messages
-    
-    Serial.println("\n\nSTARTING DATA BOARD....");
-
+    // Start with LED and button initialization to show system is live before potentially waiting for Serial
     for (int i = 0; i < 2; i++) pinMode(button[i], INPUT_PULLUP);
     for (int i = 0; i < 3; i++) {
         pinMode(statusLED[i], OUTPUT);
         digitalWrite(statusLED[i], HIGH);
         delay(250);
     }
+
+    Serial.begin(112500);
+    // while (!Serial) delay(10); // Wait for USB to open for debug messages
+    Serial.println("\n\nSTARTING DATA BOARD....");
 
     if (setupAudio() == 0) Serial.println("AUDIO INPUT CONFIGURED SUCCESSFULLY");
     else Serial.println("AUDIO INPUT CONFIGURE ERROR");
@@ -56,14 +56,18 @@ void setup() {
 
 void loop() {
     uint8_t buttons = 0;
-    touch.readSensors(&buttons);
-    LEDfsm(ledFSMstates::BREATH, buttons);
+    // touch.readSensors(&buttons);
+    // LEDfsm(ledFSMstates::SPINNING, buttons);
 
-    double left[64], right[64], leftRMS, rightRMS;
-    readAudio(left, right, &leftRMS, &rightRMS);
+    // double left[64], right[64], leftRMS, rightRMS;
+    // readAudio(left, right, &leftRMS, &rightRMS);
 
     // Currently just throw up the spectrum for the left channel on most of the LEDs
-    for (int i = 0; i < 64; i++) LEDlevel[i] = left[i] * 255.0;
+    // for (int i = 0; i < 64; i++) LEDlevel[i] = left[i] * 255.0;
+
+    ledlevel_t intense[] = {7, 15, 23, 31, 39, 47, 55, 63};
+
+    paintColumns(intense, true);
 
     remap(drivers);
     drivers[0].updateDuties();
@@ -72,4 +76,6 @@ void loop() {
     // A little heartbeat
     if (((millis() / 500) % 2) == 1) digitalWrite(statusLED[0], HIGH);
     else digitalWrite(statusLED[0], LOW);
+
+    delay(5);
 }
