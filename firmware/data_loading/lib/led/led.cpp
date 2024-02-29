@@ -3,12 +3,12 @@
 #include "is31fl3236.hpp"
 #include "led.hpp"
 
-const ledInd_t numLED = 72;
-const ledInd_t numRows = 8;
-const ledInd_t numCols = 30;
+const ledInd_t NUM_LED = 72;
+const ledInd_t NUM_ROW = 8;
+const ledInd_t NUM_COL = 30;
 
-ledlevel_t LEDlevel[numLED] = {0}; // Actual LED brightness
-ledlevel_t LEDgamma[numLED] = {0}; // Used to store LED gamma levels. Must be copied into actual buffer.
+ledlevel_t LEDlevel[NUM_LED] = {0}; // Actual LED brightness
+ledlevel_t LEDgamma[NUM_LED] = {0}; // Used to store LED gamma levels. Must be copied into actual buffer.
 ledInd_t LEDstartIndex[] = {0, 8, 38, 44};
 ledInd_t LEDmiddleIndex[] = {4, 23, 41, 58};
 ledInd_t LEDbutton[] = {44, 42, 40, 38};
@@ -31,7 +31,7 @@ const byte PWM_GAMMA_64[64] = {
  * \note This is best called prior to the initialization the the drivers themselves
  */
 void initializeLED(IS31FL3236 drvrs[]) {
-    for (ledInd_t i = 0; i < numLED; i++) LEDlevel[i] = 0;
+    for (ledInd_t i = 0; i < NUM_LED; i++) LEDlevel[i] = 0;
 
     // Configure the LED channels for each driver
     // This is done if we want to dim one set of LEDs relative to the other
@@ -129,11 +129,21 @@ bool checkReset(unsigned long mark, unsigned long stepPeriod, unsigned long curT
 
     /*  Reset check
 
-        Checking if the function hasn't been called for some time
-        indirectly via a notably out of date `nextMark` value. Thus 
-        the function should probably restart.
+        Checking if the function hasn't been called for some time indirectly via a 
+        notably out of date `nextMark` value. Thus the function should probably restart.
+
+        It also accounts for audio sampling by using the larger of the two periods:
+        function step and approximate audio sampling period.
     */ 
-    return (mark + (3 * stepPeriod)) < curTime;
+    const unsigned long AUDIO_SAMPLE_PERIOD = 40;
+    const unsigned long FUNC_TIMEOUT_PERIOD = 3 * stepPeriod;
+
+    bool timedOut;
+    if (AUDIO_SAMPLE_PERIOD > FUNC_TIMEOUT_PERIOD) timedOut = (mark + AUDIO_SAMPLE_PERIOD) < curTime;
+    else timedOut = (mark + FUNC_TIMEOUT_PERIOD) < curTime;
+    if (timedOut) return true;
+
+    return (mark == 0); // If mark is zero then it's the first time a function's run, should reset
 }
 
 /**
@@ -144,7 +154,7 @@ bool checkReset(unsigned long mark, unsigned long stepPeriod, unsigned long curT
  * 
  * \return Index in the valid range
  */
-ledInd_t constrainIndex(ledInd_t ind, ledInd_t limit = numLED) {
+ledInd_t constrainIndex(ledInd_t ind, ledInd_t limit = NUM_LED) {
     if ((ind >= 0) && (ind < limit)) return ind; // Valid
 
     while (ind < 0) ind = ind + limit; // Brings index into positives
@@ -166,7 +176,7 @@ void paintRows(ledlevel_t intensities[], bool gamma = false) {
     if (gamma == true) {
         // Right side
         for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) 
-            LEDlevel[i] = PWM_GAMMA_64[intensities[numRows - i]];
+            LEDlevel[i] = PWM_GAMMA_64[intensities[NUM_ROW - i]];
         // Bottom row
         for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) 
             LEDlevel[i] = PWM_GAMMA_64[intensities[0]];
@@ -174,13 +184,13 @@ void paintRows(ledlevel_t intensities[], bool gamma = false) {
         for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) 
             LEDlevel[i] = PWM_GAMMA_64[intensities[i - LEDstartIndex[2]]];
         // Top row
-        for (ledInd_t i = LEDstartIndex[3]; i < numLED; i++) 
-            LEDlevel[i] = PWM_GAMMA_64[intensities[numRows - 1]];
+        for (ledInd_t i = LEDstartIndex[3]; i < NUM_LED; i++) 
+            LEDlevel[i] = PWM_GAMMA_64[intensities[NUM_ROW - 1]];
     }
     else {
         // Right side
         for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) 
-            LEDlevel[i] = intensities[numRows - i];
+            LEDlevel[i] = intensities[NUM_ROW - i];
         // Bottom row
         for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) 
             LEDlevel[i] = intensities[0];
@@ -188,8 +198,8 @@ void paintRows(ledlevel_t intensities[], bool gamma = false) {
         for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) 
             LEDlevel[i] = intensities[i - LEDstartIndex[2]];
         // Top row
-        for (ledInd_t i = LEDstartIndex[3]; i < numLED; i++) 
-            LEDlevel[i] = intensities[numRows - 1];
+        for (ledInd_t i = LEDstartIndex[3]; i < NUM_LED; i++) 
+            LEDlevel[i] = intensities[NUM_ROW - 1];
     }
 }
 
@@ -205,29 +215,29 @@ void paintColumns(ledlevel_t intensities[], bool gamma = false) {
     if (gamma == true) {
         // Right side
         for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) 
-            LEDlevel[i] = PWM_GAMMA_64[intensities[numCols - 1]];
+            LEDlevel[i] = PWM_GAMMA_64[intensities[NUM_COL - 1]];
         // Bottom row
         for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) 
-            LEDlevel[i] = PWM_GAMMA_64[intensities[(numCols - 1) - (i - LEDstartIndex[1])]];
+            LEDlevel[i] = PWM_GAMMA_64[intensities[(NUM_COL - 1) - (i - LEDstartIndex[1])]];
         // Left side
         for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) 
             LEDlevel[i] = PWM_GAMMA_64[intensities[0]];
         // Top row, since it is a bit narrower we skip the outer values
-        for (ledInd_t i = LEDstartIndex[3]; i < numLED; i++) 
+        for (ledInd_t i = LEDstartIndex[3]; i < NUM_LED; i++) 
             LEDlevel[i] = PWM_GAMMA_64[intensities[(i + 1) - LEDstartIndex[3]]];
     }
     else {
         // Right side
         for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) 
-            LEDlevel[i] = intensities[numCols - 1];
+            LEDlevel[i] = intensities[NUM_COL - 1];
         // Bottom row
         for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) 
-            LEDlevel[i] = intensities[(numCols - 1) - (i - LEDstartIndex[1])];
+            LEDlevel[i] = intensities[(NUM_COL - 1) - (i - LEDstartIndex[1])];
         // Left side
         for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) 
             LEDlevel[i] = intensities[0];
         // Top row, since it is a bit narrower we skip the outer values
-        for (ledInd_t i = LEDstartIndex[3]; i < numLED; i++) 
+        for (ledInd_t i = LEDstartIndex[3]; i < NUM_LED; i++) 
             LEDlevel[i] = intensities[(i + 1) - LEDstartIndex[3]];
     }
 }
@@ -237,7 +247,7 @@ void paintColumns(ledlevel_t intensities[], bool gamma = false) {
  * 
  */
 void copyGammaIntoBuffer() {
-    for (ledInd_t i = 0; i < numLED; i++) LEDlevel[i] = PWM_GAMMA_64[LEDgamma[i]];
+    for (ledInd_t i = 0; i < NUM_LED; i++) LEDlevel[i] = PWM_GAMMA_64[LEDgamma[i]];
 }
 
 /**
@@ -246,7 +256,7 @@ void copyGammaIntoBuffer() {
  * \param gamma Gamma level
  */
 void uniformGamma(ledlevel_t gamma) {
-    for (ledInd_t i = 0; i < numLED; i++) LEDgamma[i] = gamma;
+    for (ledInd_t i = 0; i < NUM_LED; i++) LEDgamma[i] = gamma;
     copyGammaIntoBuffer();
 }
 
@@ -256,7 +266,7 @@ void uniformGamma(ledlevel_t gamma) {
  * \param intensity LED level to set
  */
 void uniformLED(ledlevel_t intensity) {
-    for (ledInd_t i = 0; i < numLED; i++) LEDlevel[i] = intensity;
+    for (ledInd_t i = 0; i < NUM_LED; i++) LEDlevel[i] = intensity;
 }
 
 /**
@@ -266,8 +276,8 @@ void uniformLED(ledlevel_t intensity) {
  * \note Will intrepret a lack of calls in 
  */
 void breathingLED(unsigned long periodMS) {
-    const ledlevel_t maxIntensity = 63;
-    const ledlevel_t minIntensity = 0;
+    const ledlevel_t MAX_INTENSITY = 63;
+    const ledlevel_t MIN_INTENSITY = 0;
     const ledlevel_t intensityStep = 1;
 
     static ledlevel_t breathingIntensity = 0;
@@ -278,13 +288,13 @@ void breathingLED(unsigned long periodMS) {
     if (nextMark > currentTime) return; // Wait for effect mark
 
     // Determine approximate time step for each lighting step so a complete up-down cycle is done
-    unsigned int stepMS = periodMS / (2 * (maxIntensity / intensityStep));
+    unsigned int stepMS = periodMS / (2 * (MAX_INTENSITY / intensityStep));
 
     // Check and handle resets
     bool restart = checkReset(nextMark, stepMS, currentTime);
     nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
-        breathingIntensity = minIntensity;
+        breathingIntensity = MIN_INTENSITY;
         climbing = true;
         uniformGamma(breathingIntensity);
         return;
@@ -292,15 +302,15 @@ void breathingLED(unsigned long periodMS) {
 
     // Actually enact effect
     if (climbing) {
-        if (breathingIntensity >= maxIntensity) {
-            breathingIntensity = maxIntensity;
+        if (breathingIntensity >= MAX_INTENSITY) {
+            breathingIntensity = MAX_INTENSITY;
             climbing = false;
         }
         else breathingIntensity += intensityStep;
     }
     else {
-        if (breathingIntensity <= minIntensity) {
-            breathingIntensity = minIntensity;
+        if (breathingIntensity <= MIN_INTENSITY) {
+            breathingIntensity = MIN_INTENSITY;
             climbing = true;
         }
         else breathingIntensity -= intensityStep;
@@ -318,7 +328,7 @@ void breathingLED(unsigned long periodMS) {
 void spinningLED(unsigned long periodMS, bool clockwise = true) {
     const ledlevel_t backgroundIntensity = 10;
     const int numBump = 2; // Number of light "bumps" going around
-    const ledInd_t spacing = numLED / numBump;
+    const ledInd_t spacing = NUM_LED / numBump;
     ledlevel_t stages[] = {63, 55, 50, 45, 40, 35, 25, 20, backgroundIntensity}; 
     // Gamma intensities of the bumps going around
     const int numStages = sizeof(stages) / sizeof(stages[0]);
@@ -332,7 +342,7 @@ void spinningLED(unsigned long periodMS, bool clockwise = true) {
     if (nextMark > currentTime) return; // Wait for effect mark
 
     // Determine approximate time step for each lighting step so rotations are done
-    unsigned int stepMS = periodMS / numLED;
+    unsigned int stepMS = periodMS / NUM_LED;
 
     // Check and handle resets
     bool restart = checkReset(nextMark, stepMS, currentTime);
@@ -367,18 +377,18 @@ void spinningLED(unsigned long periodMS, bool clockwise = true) {
  * \param upwards Should the wave move upwards or not
  */
 void waveVerLED(unsigned long periodMS, bool upwards = true) {
-    const ledlevel_t endIntensity = 63;
-    const ledlevel_t baseIntensity = 10;
-    const int incrementIntensity = (baseIntensity < endIntensity) ? 1 : -1;
-    const ledlevel_t propagateLevel = 32; // Level to start next row
+    const ledlevel_t END_INTENSITY = 60;
+    const ledlevel_t START_INTENSITY = 10;
+    const int INTENSITY_INCR = (START_INTENSITY < END_INTENSITY) ? 1 : -1;
+    const ledlevel_t PROPAGATE_LVL = 30; // Level to start next row
 
     static ledInd_t location = 0; // Location of leading row in effect
-    static ledlevel_t rowLevels[numRows] = { 0 };
-    static bool rowGrowing[numRows] = { false }; // Marks if a row's brightness is climbing or not
+    static ledlevel_t rowLevels[NUM_ROW] = { 0 };
+    static bool rowGrowing[NUM_ROW] = { false }; // Marks if a row's brightness is climbing or not
 
     static unsigned long nextMark = 0;      // Marks next time to adjust brightness
     unsigned long currentTime = millis();
-    unsigned int stepMS = periodMS / (numRows * 2 * (incrementIntensity * (endIntensity - baseIntensity)));
+    unsigned int stepMS = periodMS / (NUM_ROW * 2 * ((END_INTENSITY - START_INTENSITY) /  INTENSITY_INCR));
     // Determine approximate time step for each lighting step so rotations are done
 
     // Check if it is time to adjust effects or not
@@ -388,8 +398,10 @@ void waveVerLED(unsigned long periodMS, bool upwards = true) {
     bool restart = checkReset(nextMark, stepMS, currentTime);
     nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
-        uniformLED(PWM_GAMMA_64[baseIntensity]);
-        if (upwards) location = numRows - 1;
+        for (ledInd_t i = 0; i < NUM_ROW; i++) rowLevels[i] = START_INTENSITY;
+        uniformLED(PWM_GAMMA_64[START_INTENSITY]);
+
+        if (upwards) location = NUM_ROW - 1;
         else location = 0;
         return;
     }
@@ -397,29 +409,29 @@ void waveVerLED(unsigned long periodMS, bool upwards = true) {
     // Set lighting by rows
     rowGrowing[location] = true; // Always growing on the leading edge
 
-    for (unsigned int r = 0; r < numRows; r++) {
+    for (unsigned int r = 0; r < NUM_ROW; r++) {
         if (rowGrowing[r] == true) {
             // Climb to end point then start reversing
-            if (rowLevels[r] != endIntensity) rowLevels[r] = rowLevels[r] + incrementIntensity;
+            if (rowLevels[r] != END_INTENSITY) rowLevels[r] = rowLevels[r] + INTENSITY_INCR;
             else rowGrowing[r] = false; // Hit endpoint
         }
         else {
             // Decend until hitting base colour
-            if (rowLevels[r] != baseIntensity) rowLevels[r] = rowLevels[r] - incrementIntensity;
+            if (rowLevels[r] != START_INTENSITY) rowLevels[r] = rowLevels[r] - INTENSITY_INCR;
         } 
     }
 
     // Check to propagate
-    if (rowLevels[location] == propagateLevel) {
+    if (rowLevels[location] == PROPAGATE_LVL) {
         if (upwards) {
-            if (location == (numRows - 1)) {
+            if (location == (NUM_ROW - 1)) {
                 location = 0;
             }
             else location++;
         }
         else {
             if (location == 0) {
-                location = numRows - 1;
+                location = NUM_ROW - 1;
             }
             else location--;
         }
@@ -436,18 +448,18 @@ void waveVerLED(unsigned long periodMS, bool upwards = true) {
  * \param rightwards Should the wave scroll rightwards or not
  */
 void waveHorLED(unsigned long periodMS, bool rightwards = true) {
-    const ledlevel_t endIntensity = 63;
-    const ledlevel_t baseIntensity = 10;
-    const int incrementIntensity = (baseIntensity < endIntensity) ? 1 : -1;
-    const ledlevel_t propagateLevel = 32; // Level to start next row
+    const ledlevel_t END_INTENSITY = 63;
+    const ledlevel_t START_INTENSITY = 10;
+    const int INTENSITY_INCR = (START_INTENSITY < END_INTENSITY) ? 1 : -1;
+    const ledlevel_t PROPAGATE_LVL = 32; // Level to start next row
 
     static ledInd_t location = 0; // Location of leading row in effect
-    static ledlevel_t colLevels[numCols] = { 0 };
-    static bool colGrowing[numCols] = { false }; // Marks if a row's brightness is climbing or not
+    static ledlevel_t colLevels[NUM_COL] = { 0 };
+    static bool colGrowing[NUM_COL] = { false }; // Marks if a row's brightness is climbing or not
 
     static unsigned long nextMark = 0;      // Marks next time to adjust brightness
     unsigned long currentTime = millis();
-    unsigned int stepMS = periodMS / (numCols * 2 * (incrementIntensity * (endIntensity - baseIntensity)));
+    unsigned int stepMS = periodMS / (NUM_COL * 2 * ((END_INTENSITY - START_INTENSITY) / INTENSITY_INCR));
     // Determine approximate time step for each lighting step so rotations are done
 
     // Check if it is time to adjust effects or not
@@ -457,8 +469,10 @@ void waveHorLED(unsigned long periodMS, bool rightwards = true) {
     bool restart = checkReset(nextMark, stepMS, currentTime);
     nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
-        uniformLED(PWM_GAMMA_64[baseIntensity]);
-        if (rightwards) location = numCols - 1;
+        for (ledInd_t i = 0; i < NUM_COL; i++) colLevels[i] = START_INTENSITY;
+        uniformLED(PWM_GAMMA_64[START_INTENSITY]);
+
+        if (rightwards) location = NUM_COL - 1;
         else location = 0;
         return;
     }
@@ -466,29 +480,29 @@ void waveHorLED(unsigned long periodMS, bool rightwards = true) {
     // Set lighting by rows
     colGrowing[location] = true; // Always growing on the leading edge
 
-    for (unsigned int r = 0; r < numCols; r++) {
+    for (unsigned int r = 0; r < NUM_COL; r++) {
         if (colGrowing[r] == true) {
             // Climb to end point then start reversing
-            if (colLevels[r] != endIntensity) colLevels[r] = colLevels[r] + incrementIntensity;
+            if (colLevels[r] != END_INTENSITY) colLevels[r] = colLevels[r] + INTENSITY_INCR;
             else colGrowing[r] = false; // Hit endpoint
         }
         else {
             // Decend until hitting base colour
-            if (colLevels[r] != baseIntensity) colLevels[r] = colLevels[r] - incrementIntensity;
+            if (colLevels[r] != START_INTENSITY) colLevels[r] = colLevels[r] - INTENSITY_INCR;
         } 
     }
 
     // Check to propagate
-    if (colLevels[location] == propagateLevel) {
+    if (colLevels[location] == PROPAGATE_LVL) {
         if (rightwards) {
-            if (location == (numCols - 1)) {
+            if (location == (NUM_COL - 1)) {
                 location = 0;
             }
             else location++;
         }
         else {
             if (location == 0) {
-                location = numCols - 1;
+                location = NUM_COL - 1;
             }
             else location--;
         }
@@ -505,9 +519,9 @@ void waveHorLED(unsigned long periodMS, bool rightwards = true) {
  * \param stepMS Period in milliseconds between each adjustment cycle
  */
 void cloudLED(unsigned long stepMS) {
-    const ledlevel_t maxIntensity = 63;
-    const ledlevel_t minIntensity = 10;
-    const unsigned int numAdjust = 3; // How many LEDs get adjusted per cycle
+    const ledlevel_t MAX_INTENSITY = 63;
+    const ledlevel_t MIN_INTENSITY = 10;
+    const unsigned int NUM_ADJUST = 3; // How many LEDs get adjusted per cycle
 
     static unsigned long nextMark = 0;      // Marks next time to adjust brightness
     unsigned long currentTime = millis();
@@ -520,15 +534,15 @@ void cloudLED(unsigned long stepMS) {
     nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
         // Reset to middle light level
-        uniformGamma((minIntensity + maxIntensity) / 2);
+        uniformGamma((MIN_INTENSITY + MAX_INTENSITY) / 2);
         return;
     }
 
     // Come up with the adjustments to make
-    bool increase[numAdjust] = {false};
-    ledInd_t target[numAdjust] = {0};
+    bool increase[NUM_ADJUST] = {false};
+    ledInd_t target[NUM_ADJUST] = {0};
 
-    for (uint_fast8_t i = 0; i < numAdjust; i++) {
+    for (uint_fast8_t i = 0; i < NUM_ADJUST; i++) {
 
         bool uniqueChange = true;
         do {
@@ -544,9 +558,9 @@ void cloudLED(unsigned long stepMS) {
     }
     
     // Enact the changes if valid
-    for (uint_fast8_t i = 0; i < numAdjust; i++) {
-        if ((increase[i] == true) && (LEDgamma[target[i]] < maxIntensity)) LEDgamma[target[i]]++;
-        if ((increase[i] == false) && (LEDgamma[target[i]] > minIntensity)) LEDgamma[target[i]]--;
+    for (uint_fast8_t i = 0; i < NUM_ADJUST; i++) {
+        if ((increase[i] == true) && (LEDgamma[target[i]] < MAX_INTENSITY)) LEDgamma[target[i]]++;
+        if ((increase[i] == false) && (LEDgamma[target[i]] > MIN_INTENSITY)) LEDgamma[target[i]]--;
     }
     copyGammaIntoBuffer();
 }
@@ -563,10 +577,10 @@ void cloudLED(unsigned long stepMS) {
  */
 void trackingLED(unsigned long stepMS, unsigned long swapDurMS = 500,
                  unsigned int widthSwap = 3, uint8_t probOfSwap = 3) {
-    const ledlevel_t maxIntensity = 63;
-    const ledlevel_t minIntensity = 10;
-    static ledlevel_t colIntensity[numCols] = {0};
-    const unsigned int numAdjust = 3;   // How many columns get adjusted per cycle
+    const ledlevel_t MAX_INTENSITY = 63;
+    const ledlevel_t MIN_INTENSITY = 10;
+    static ledlevel_t colIntensity[NUM_COL] = {0};
+    const unsigned int NUM_ADJUST = 3;   // How many columns get adjusted per cycle
     const unsigned int numSwaps = 2;    // Number of possible simultanious swaps
 
     struct swap_t {
@@ -586,7 +600,7 @@ void trackingLED(unsigned long stepMS, unsigned long swapDurMS = 500,
     nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
         // Reset to middle light level
-        for (ledInd_t i = 0; i < numCols; i++) colIntensity[i] = (minIntensity + maxIntensity) / 2;
+        for (ledInd_t i = 0; i < NUM_COL; i++) colIntensity[i] = (MIN_INTENSITY + MAX_INTENSITY) / 2;
         paintColumns(colIntensity);
 
         // Reset swaps
@@ -595,17 +609,17 @@ void trackingLED(unsigned long stepMS, unsigned long swapDurMS = 500,
     }
 
     // Come up with the adjustments to make
-    bool increase[numAdjust] = {false};
-    ledInd_t target[numAdjust] = {0};
+    bool increase[NUM_ADJUST] = {false};
+    ledInd_t target[NUM_ADJUST] = {0};
 
-    for (uint_fast8_t i = 0; i < numAdjust; i++) {
+    for (uint_fast8_t i = 0; i < NUM_ADJUST; i++) {
 
         bool uniqueChange = true;
         do {
             // Need to use entirely independant bits for each part of a change to avoid correlations
             unsigned long temp = random();
             increase[i] = temp & 1;
-            target[i] = constrainIndex((temp >> 1), numCols); // Discard direction bit for location calculation
+            target[i] = constrainIndex((temp >> 1), NUM_COL); // Discard direction bit for location calculation
 
             for (uint_fast8_t c = 0; c < i; c++) {
                 if (target[c] == target[i]) uniqueChange = false;
@@ -614,9 +628,9 @@ void trackingLED(unsigned long stepMS, unsigned long swapDurMS = 500,
     }
     
     // Enact the changes if valid
-    for (uint_fast8_t i = 0; i < numAdjust; i++) {
-        if ((increase[i] == true) && (colIntensity[target[i]] < maxIntensity)) colIntensity[target[i]]++;
-        if ((increase[i] == false) && (colIntensity[target[i]] > minIntensity)) colIntensity[target[i]]--;
+    for (uint_fast8_t i = 0; i < NUM_ADJUST; i++) {
+        if ((increase[i] == true) && (colIntensity[target[i]] < MAX_INTENSITY)) colIntensity[target[i]]++;
+        if ((increase[i] == false) && (colIntensity[target[i]] > MIN_INTENSITY)) colIntensity[target[i]]--;
     }
 
     // Work through swaps
@@ -628,8 +642,8 @@ void trackingLED(unsigned long stepMS, unsigned long swapDurMS = 500,
                 // Undo the swap
                 ledlevel_t temp = colIntensity[swaps[i].location];
                 colIntensity[swaps[i].location] = 
-                    colIntensity[constrainIndex(swaps[i].location + widthSwap, numCols)];
-                colIntensity[constrainIndex(swaps[i].location + widthSwap, numCols)] = temp;
+                    colIntensity[constrainIndex(swaps[i].location + widthSwap, NUM_COL)];
+                colIntensity[constrainIndex(swaps[i].location + widthSwap, NUM_COL)] = temp;
             }
         }
         else {
@@ -645,20 +659,20 @@ void trackingLED(unsigned long stepMS, unsigned long swapDurMS = 500,
             bool uniqueSwap = true;
             do {
                 roll = random();
-                swaps[i].location = constrainIndex(roll, numCols);
+                swaps[i].location = constrainIndex(roll, NUM_COL);
 
                 for (uint_fast8_t c = 0; c < numSwaps; c++) {
                     if (swaps[c].enabled == false) continue;
                     if (swaps[i].location == swaps[c].location) uniqueSwap = false;
-                    if (swaps[i].location == constrainIndex(swaps[c].location + widthSwap, numCols)) 
+                    if (swaps[i].location == constrainIndex(swaps[c].location + widthSwap, NUM_COL)) 
                         uniqueSwap = false;
                 }
             } while (uniqueSwap == false);
 
             // Perform the swap
             ledlevel_t temp = colIntensity[swaps[i].location];
-            colIntensity[swaps[i].location] = colIntensity[constrainIndex(swaps[i].location + widthSwap, numCols)];
-            colIntensity[constrainIndex(swaps[i].location + widthSwap, numCols)] = temp;
+            colIntensity[swaps[i].location] = colIntensity[constrainIndex(swaps[i].location + widthSwap, NUM_COL)];
+            colIntensity[constrainIndex(swaps[i].location + widthSwap, NUM_COL)] = temp;
         }
     }
 

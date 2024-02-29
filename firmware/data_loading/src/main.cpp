@@ -28,7 +28,7 @@ void setup() {
     }
 
     Serial.begin(112500);
-    // while (!Serial) delay(10); // Wait for USB to open for debug messages
+    while (!Serial) delay(10); // Wait for USB to open for debug messages
     Serial.println("\n\nSTARTING DATA BOARD....");
 
     if (setupAudio() == 0) Serial.println("AUDIO INPUT CONFIGURED SUCCESSFULLY");
@@ -48,7 +48,7 @@ void setup() {
     else Serial.println("TOUCH SENSOR CONFIGURE ERROR");
 
     Serial.println("LAUNCHING!\n");
-    delay(2000);
+    // delay(2000);
     for (int i = 0; i < 3; i++) {
         digitalWrite(statusLED[i], LOW);
     }
@@ -56,18 +56,14 @@ void setup() {
 
 void loop() {
     uint8_t buttons = 0;
-    // touch.readSensors(&buttons);
-    // LEDfsm(ledFSMstates::SPINNING, buttons);
+    touch.readSensors(&buttons);
+    LEDfsm(ledFSMstates::WAVE_VERT, buttons);
 
     // double left[64], right[64], leftRMS, rightRMS;
     // readAudio(left, right, &leftRMS, &rightRMS);
 
     // Currently just throw up the spectrum for the left channel on most of the LEDs
     // for (int i = 0; i < 64; i++) LEDlevel[i] = left[i] * 255.0;
-
-    ledlevel_t intense[] = {7, 15, 23, 31, 39, 47, 55, 63};
-
-    paintColumns(intense, true);
 
     remap(drivers);
     drivers[0].updateDuties();
