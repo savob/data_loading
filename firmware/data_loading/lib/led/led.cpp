@@ -592,7 +592,8 @@ void trackingLED(unsigned long stepMS, unsigned long swapDurMS = 500,
         bool enabled = false;       // Is this swap active?
         unsigned long endTime = 0;  // When to deactivate (based on `millis()` time)
         ledInd_t location = 0;      // What is the start of this swap
-    } swaps[NUM_SWAPS];
+    };
+    static swap_t swaps[NUM_SWAPS];
 
     static unsigned long nextMark = 0;      // Marks next time to adjust brightness
     unsigned long currentTime = millis();
