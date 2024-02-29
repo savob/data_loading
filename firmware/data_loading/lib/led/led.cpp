@@ -519,9 +519,10 @@ void waveHorLED(unsigned long periodMS, bool rightwards = true) {
  * \param stepMS Period in milliseconds between each adjustment cycle
  */
 void cloudLED(unsigned long stepMS) {
-    const ledlevel_t MAX_INTENSITY = 63;
+    const ledlevel_t MAX_INTENSITY = 60;
     const ledlevel_t MIN_INTENSITY = 10;
-    const unsigned int NUM_ADJUST = 3; // How many LEDs get adjusted per cycle
+    const ledlevel_t INCREMENT = 1;
+    const unsigned int NUM_ADJUST = 8; // How many LEDs get adjusted per cycle
 
     static unsigned long nextMark = 0;      // Marks next time to adjust brightness
     unsigned long currentTime = millis();
@@ -551,6 +552,7 @@ void cloudLED(unsigned long stepMS) {
             increase[i] = temp & 1;
             target[i] = constrainIndex(temp >> 1); // Discard direction bit for location calculation
 
+            uniqueChange = true;
             for (uint_fast8_t c = 0; c < i; c++) {
                 if (target[c] == target[i]) uniqueChange = false;
             }
@@ -559,8 +561,10 @@ void cloudLED(unsigned long stepMS) {
     
     // Enact the changes if valid
     for (uint_fast8_t i = 0; i < NUM_ADJUST; i++) {
-        if ((increase[i] == true) && (LEDgamma[target[i]] < MAX_INTENSITY)) LEDgamma[target[i]]++;
-        if ((increase[i] == false) && (LEDgamma[target[i]] > MIN_INTENSITY)) LEDgamma[target[i]]--;
+        if ((increase[i] == true) && (LEDgamma[target[i]] < MAX_INTENSITY)) 
+            LEDgamma[target[i]] = LEDgamma[i] + INCREMENT;
+        if ((increase[i] == false) && (LEDgamma[target[i]] > MIN_INTENSITY)) 
+            LEDgamma[target[i]] = LEDgamma[i] - INCREMENT;;
     }
     copyGammaIntoBuffer();
 }
