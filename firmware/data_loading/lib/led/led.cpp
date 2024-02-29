@@ -54,11 +54,11 @@ void initializeLED(IS31FL3236 drvrs[]) {
 /**
  * \brief Maps the calculated LED values to the right hardware register
  * 
- * \param drvrs Te array of LED drivers
+ * \param drvrs The array of LED drivers
  * 
  * \note THIS MUST BE UPDATED WITH ANY HARDWARE CHANGES!
  * 
- * \warning This must be called so LED effects can be seen
+ * \warning This must be called so LED effects can be seen properly
  */
 void remap(IS31FL3236 drvrs[]) {
     for (uint_fast8_t i = 0; i < 6; i++) {
@@ -155,64 +155,80 @@ ledInd_t constrainIndex(ledInd_t ind, ledInd_t limit = numLED) {
 }
 
 /**
- * \brief Paints the LEDs in each column a uniform brightness
+ * \brief Paints the LEDs in each row a uniform brightness
  * 
  * \param intensities Array of intensities to paint on the rows
  * \param gamma Are intensities gamma levels or not? (0 to 63)
  * 
  * \note Bottom row is row 0
  */
-void paintColumns(ledlevel_t intensities[], bool gamma = false) {
+void paintRows(ledlevel_t intensities[], bool gamma = false) {
     if (gamma == true) {
         // Right side
-        for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) LEDlevel[i] = PWM_GAMMA_64[intensities[numRows - i]];
+        for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) 
+            LEDlevel[i] = PWM_GAMMA_64[intensities[numRows - i]];
         // Bottom row
-        for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) LEDlevel[i] = PWM_GAMMA_64[intensities[0]];
+        for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) 
+            LEDlevel[i] = PWM_GAMMA_64[intensities[0]];
         // Left side
-        for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) LEDlevel[i] = PWM_GAMMA_64[intensities[i - LEDstartIndex[2]]];
+        for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) 
+            LEDlevel[i] = PWM_GAMMA_64[intensities[i - LEDstartIndex[2]]];
         // Top row
-        for (ledInd_t i = LEDstartIndex[3]; i < numLED; i++) LEDlevel[i] = PWM_GAMMA_64[intensities[numRows]];
+        for (ledInd_t i = LEDstartIndex[3]; i < numLED; i++) 
+            LEDlevel[i] = PWM_GAMMA_64[intensities[numRows - 1]];
     }
     else {
         // Right side
-        for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) LEDlevel[i] = intensities[numRows - i];
+        for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) 
+            LEDlevel[i] = intensities[numRows - i];
         // Bottom row
-        for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) LEDlevel[i] = intensities[0];
+        for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) 
+            LEDlevel[i] = intensities[0];
         // Left side
-        for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) LEDlevel[i] = intensities[i - LEDstartIndex[2]];
+        for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) 
+            LEDlevel[i] = intensities[i - LEDstartIndex[2]];
         // Top row
-        for (ledInd_t i = LEDstartIndex[3]; i < numLED; i++) LEDlevel[i] = intensities[numRows];
+        for (ledInd_t i = LEDstartIndex[3]; i < numLED; i++) 
+            LEDlevel[i] = intensities[numRows - 1];
     }
 }
 
 /**
- * \brief Paints the LEDs in each row a uniform brightness
+ * \brief Paints the LEDs in each column a uniform brightness
  * 
  * \param intensities Array of intensities to paint on the columns
  * \param gamma Are intensities gamma levels or not? (0 to 63)
  * 
  * \note Left column is column 0
  */
-void paintRows(ledlevel_t intensities[], bool gamma = false) {
+void paintColumns(ledlevel_t intensities[], bool gamma = false) {
     if (gamma == true) {
         // Right side
-        for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) LEDlevel[i] = PWM_GAMMA_64[intensities[numCols]];
+        for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) 
+            LEDlevel[i] = PWM_GAMMA_64[intensities[numCols - 1]];
         // Bottom row
-        for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) LEDlevel[i] = PWM_GAMMA_64[intensities[(numCols - 1) - LEDstartIndex[1]]];
+        for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) 
+            LEDlevel[i] = PWM_GAMMA_64[intensities[(numCols - 1) - (i - LEDstartIndex[1])]];
         // Left side
-        for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) LEDlevel[i] = PWM_GAMMA_64[intensities[0]];
+        for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) 
+            LEDlevel[i] = PWM_GAMMA_64[intensities[0]];
         // Top row, since it is a bit narrower we skip the outer values
-        for (ledInd_t i = LEDstartIndex[3]; i < numLED; i++) LEDlevel[i] = PWM_GAMMA_64[intensities[(i + 1) - LEDstartIndex[3]]];
+        for (ledInd_t i = LEDstartIndex[3]; i < numLED; i++) 
+            LEDlevel[i] = PWM_GAMMA_64[intensities[(i + 1) - LEDstartIndex[3]]];
     }
     else {
         // Right side
-        for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) LEDlevel[i] = intensities[numCols];
+        for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) 
+            LEDlevel[i] = intensities[numCols - 1];
         // Bottom row
-        for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) LEDlevel[i] = intensities[(numCols - 1) - LEDstartIndex[1]];
+        for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) 
+            LEDlevel[i] = intensities[(numCols - 1) - (i - LEDstartIndex[1])];
         // Left side
-        for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) LEDlevel[i] = intensities[0];
+        for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) 
+            LEDlevel[i] = intensities[0];
         // Top row, since it is a bit narrower we skip the outer values
-        for (ledInd_t i = LEDstartIndex[3]; i < numLED; i++) LEDlevel[i] = intensities[(i + 1) - LEDstartIndex[3]];
+        for (ledInd_t i = LEDstartIndex[3]; i < numLED; i++) 
+            LEDlevel[i] = intensities[(i + 1) - LEDstartIndex[3]];
     }
 }
 
@@ -303,7 +319,8 @@ void spinningLED(unsigned long periodMS, bool clockwise = true) {
     const ledlevel_t backgroundIntensity = 10;
     const int numBump = 2; // Number of light "bumps" going around
     const ledInd_t spacing = numLED / numBump;
-    ledlevel_t stages[] = {63, 40, 20, backgroundIntensity}; // Gamma intensities of the bumps going around
+    ledlevel_t stages[] = {63, 55, 50, 45, 40, 35, 25, 20, backgroundIntensity}; 
+    // Gamma intensities of the bumps going around
     const int numStages = sizeof(stages) / sizeof(stages[0]);
     // Need to include background to reset 
 
@@ -610,7 +627,8 @@ void trackingLED(unsigned long stepMS, unsigned long swapDurMS = 500,
 
                 // Undo the swap
                 ledlevel_t temp = colIntensity[swaps[i].location];
-                colIntensity[swaps[i].location] = colIntensity[constrainIndex(swaps[i].location + widthSwap, numCols)];
+                colIntensity[swaps[i].location] = 
+                    colIntensity[constrainIndex(swaps[i].location + widthSwap, numCols)];
                 colIntensity[constrainIndex(swaps[i].location + widthSwap, numCols)] = temp;
             }
         }
@@ -632,7 +650,8 @@ void trackingLED(unsigned long stepMS, unsigned long swapDurMS = 500,
                 for (uint_fast8_t c = 0; c < numSwaps; c++) {
                     if (swaps[c].enabled == false) continue;
                     if (swaps[i].location == swaps[c].location) uniqueSwap = false;
-                    if (swaps[i].location == constrainIndex(swaps[c].location + widthSwap, numCols)) uniqueSwap = false;
+                    if (swaps[i].location == constrainIndex(swaps[c].location + widthSwap, numCols)) 
+                        uniqueSwap = false;
                 }
             } while (uniqueSwap == false);
 
