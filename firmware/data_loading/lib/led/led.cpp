@@ -581,17 +581,18 @@ void cloudLED(unsigned long stepMS) {
  */
 void trackingLED(unsigned long stepMS, unsigned long swapDurMS = 500,
                  unsigned int widthSwap = 3, uint8_t probOfSwap = 3) {
-    const ledlevel_t MAX_INTENSITY = 63;
+    const ledlevel_t MAX_INTENSITY = 60;
     const ledlevel_t MIN_INTENSITY = 10;
+    const ledlevel_t INCREMENT = 3;
     static ledlevel_t colIntensity[NUM_COL] = {0};
-    const unsigned int NUM_ADJUST = 3;   // How many columns get adjusted per cycle
-    const unsigned int numSwaps = 2;    // Number of possible simultanious swaps
+    const unsigned int NUM_ADJUST = 2;   // How many columns get adjusted per cycle
+    const unsigned int NUM_SWAPS = 2;    // Number of possible simultanious swaps
 
     struct swap_t {
         bool enabled = false;       // Is this swap active?
         unsigned long endTime = 0;  // When to deactivate (based on `millis()` time)
         ledInd_t location = 0;      // What is the start of this swap
-    } swaps[numSwaps];
+    } swaps[NUM_SWAPS];
 
     static unsigned long nextMark = 0;      // Marks next time to adjust brightness
     unsigned long currentTime = millis();
@@ -608,7 +609,7 @@ void trackingLED(unsigned long stepMS, unsigned long swapDurMS = 500,
         paintColumns(colIntensity);
 
         // Reset swaps
-        for (unsigned int i = 0; i < numSwaps; i++) swaps[i].enabled = false;
+        for (unsigned int i = 0; i < NUM_SWAPS; i++) swaps[i].enabled = false;
         return;
     }
 
@@ -625,6 +626,7 @@ void trackingLED(unsigned long stepMS, unsigned long swapDurMS = 500,
             increase[i] = temp & 1;
             target[i] = constrainIndex((temp >> 1), NUM_COL); // Discard direction bit for location calculation
 
+            uniqueChange = true;
             for (uint_fast8_t c = 0; c < i; c++) {
                 if (target[c] == target[i]) uniqueChange = false;
             }
@@ -633,12 +635,14 @@ void trackingLED(unsigned long stepMS, unsigned long swapDurMS = 500,
     
     // Enact the changes if valid
     for (uint_fast8_t i = 0; i < NUM_ADJUST; i++) {
-        if ((increase[i] == true) && (colIntensity[target[i]] < MAX_INTENSITY)) colIntensity[target[i]]++;
-        if ((increase[i] == false) && (colIntensity[target[i]] > MIN_INTENSITY)) colIntensity[target[i]]--;
+        if ((increase[i] == true) && (colIntensity[target[i]] < MAX_INTENSITY)) 
+            colIntensity[target[i]] = colIntensity[target[i]] + INCREMENT;
+        if ((increase[i] == false) && (colIntensity[target[i]] > MIN_INTENSITY)) 
+            colIntensity[target[i]] = colIntensity[target[i]] - INCREMENT;
     }
 
     // Work through swaps
-    for (unsigned int i = 0; i < numSwaps; i++) {
+    for (unsigned int i = 0; i < NUM_SWAPS; i++) {
         if (swaps[i].enabled == true) {
             if (currentTime > swaps[i].endTime) {
                 swaps[i].enabled = false;
@@ -665,8 +669,10 @@ void trackingLED(unsigned long stepMS, unsigned long swapDurMS = 500,
                 roll = random();
                 swaps[i].location = constrainIndex(roll, NUM_COL);
 
-                for (uint_fast8_t c = 0; c < numSwaps; c++) {
+                uniqueSwap = true;
+                for (uint_fast8_t c = 0; c < NUM_SWAPS; c++) {
                     if (swaps[c].enabled == false) continue;
+                    if (c == i) continue; // Don't compare to itself
                     if (swaps[i].location == swaps[c].location) uniqueSwap = false;
                     if (swaps[i].location == constrainIndex(swaps[c].location + widthSwap, NUM_COL)) 
                         uniqueSwap = false;

@@ -57,7 +57,7 @@ void setup() {
 void loop() {
     uint8_t buttons = 0;
     touch.readSensors(&buttons);
-    LEDfsm(ledFSMstates::WAVE_VERT, buttons);
+    LEDfsm(ledFSMstates::TRACKING, buttons);
 
     // double left[64], right[64], leftRMS, rightRMS;
     // readAudio(left, right, &leftRMS, &rightRMS);
@@ -72,6 +72,4 @@ void loop() {
     // A little heartbeat
     if (((millis() / 500) % 2) == 1) digitalWrite(statusLED[0], HIGH);
     else digitalWrite(statusLED[0], LOW);
-
-    delay(5);
 }
