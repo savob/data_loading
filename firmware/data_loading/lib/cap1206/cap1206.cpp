@@ -53,7 +53,8 @@ int Cap1206::readSingleReg(RegistersCap1206 reg, uint8_t* tar) {
  * \param num Number of registers to read
  * \param tar Address to record register values into
  * 
- * \note This will read continuously through the memory, potentially into invalid regions. Know what you're looking for!
+ * \note This will read continuously through the memory, potentially into invalid regions. 
+ * \note Know what you're looking for!
  * 
  * \return Return status of the transfer 
  */
@@ -63,7 +64,8 @@ int Cap1206::readManyRegs(RegistersCap1206 reg, uint8_t num, uint8_t* tar) {
     // Send address, then draw data
     interface->beginTransmission(ADDRESS_CAP); 
     count = interface->write(reg);
-    if ((interface->endTransmission(false) != 0) || (count != 1)) return CAP1206_TRANSFER_FAIL; // End message but not with stop
+    if ((interface->endTransmission(false) != 0) || (count != 1)) return CAP1206_TRANSFER_FAIL; 
+    // End message but not with stop
 
     interface->beginTransmission(ADDRESS_CAP); 
     count = interface->requestFrom(ADDRESS_CAP, num);
@@ -205,9 +207,21 @@ int Cap1206::readSensors(bool target[]) {
  * \return Return status of the transfer 
  */
 int Cap1206::readSensors(uint8_t* target) {
-    if(readSingleReg(RegistersCap1206::SENSOR_INPUT, target) != CAP1206_TRANSFER_SUCCESS) return CAP1206_TRANSFER_FAIL;
 
-    // Need to clear interrupt to reset button states
+    // Checks if an interrupt for input was raised
+    bool interruptFound = false;
+    if (checkInterrupt(&interruptFound) != CAP1206_TRANSFER_SUCCESS) return CAP1206_TRANSFER_FAIL;
+    
+    // If there's no interrupt then no input to process and can exit early
+    if (interruptFound == false) {
+        *target = 0; // Default to zero
+        return CAP1206_TRANSFER_SUCCESS; // Successful check
+    }
+
+    if(readSingleReg(RegistersCap1206::SENSOR_INPUT, target) != CAP1206_TRANSFER_SUCCESS) 
+        return CAP1206_TRANSFER_FAIL;
+
+    // Need to clear interrupt to reset button states for next check
     return clearInterrupt();
 }
 
@@ -289,7 +303,8 @@ int Cap1206::setConfig1(bool smbTO, bool disDigNoise, bool disAnaNoise, bool max
  * \param intRelease Trigger interrupts when buttons are released
  * \return Return status of the transfer 
  */
-int Cap1206::setConfig2(bool bcOutRecal, bool powReduction, bool bcOutInt, bool showRFnoiseOnly, bool disRFnoise, bool anaCalFailInt, bool intRelease) {
+int Cap1206::setConfig2(bool bcOutRecal, bool powReduction, bool bcOutInt, bool showRFnoiseOnly, 
+        bool disRFnoise, bool anaCalFailInt, bool intRelease) {
     uint8_t temp = 0;
 
     if (bcOutRecal == true)         temp |= 0x40;
@@ -509,7 +524,8 @@ int Cap1206::enableInterrupt(uint8_t sensors) {
  * \param cal Update time and samples needed for automatic recalibrations
  * \return Return status of the transfer 
  */
-int Cap1206::setRecalConfig(bool ldth, bool clrint, bool clrneg, NegDeltaCountCap1206 negcnt, CalConfigCap1206 cal) {
+int Cap1206::setRecalConfig(bool ldth, bool clrint, bool clrneg, 
+        NegDeltaCountCap1206 negcnt, CalConfigCap1206 cal) {
     uint8_t temp = 0;
 
     if (ldth == true)       temp |= (1 << 7);
@@ -527,7 +543,9 @@ int Cap1206::setRecalConfig(bool ldth, bool clrint, bool clrneg, NegDeltaCountCa
  * \param but Button index to adjust
  * \note Buttons are indexed from 0 in this code but the data sheet starts at 1
  * \param thres New threshold for the button (0 - 127 inclusive, will be clamped)
- * \note Setting the value for button 1 may overwrite the other buttons' thresholds. Thus button 1 should generally be set first and then the others.
+ * \note Setting the value for button 1 may overwrite the other buttons' thresholds. 
+ * \note Thus button 1 should generally be set first and then the others.
+ * 
  * \return Return status of the transfer 
  */
 int Cap1206::setButtonThreshold(uint8_t but, uint8_t thres) {
@@ -607,7 +625,7 @@ int Cap1206::setMultiTouchConfig(bool en, uint8_t blockNum) {
 /**
  * \brief Updates all the button thresholds
  * 
- * \param thres Array of thresholds for the button thresholds (0 - 127 inclusive, will be clamped). Must be of size 6.
+ * \param thres Array of six thresholds for the button thresholds (0 - 127 inclusive, will be clamped).
  * \note Buttons are indexed from 0 in this code but the data sheet starts at 1
  * \return Return status of the transfer 
  */
@@ -672,21 +690,38 @@ int Cap1206::initialize() {
     // The initial configuration is largely chip defaults
 
     if (setMainControl(false, false, true) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
-    if (setSensitivity(DeltaSensitivityCap1206::MUL_032, BaseShiftCap1206::SACLE_256) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
+    if (setSensitivity(DeltaSensitivityCap1206::MUL_032, 
+                       BaseShiftCap1206::SACLE_256) 
+                       == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     if (setConfig1(false, false, false, true) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
-    if (setConfig2(true, true, false, false, false, false, false) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
+    if (setConfig2(true, true, false, false, false, false, false) == CAP1206_TRANSFER_FAIL)
+        return CAP1206_TRANSFER_FAIL;
     
     // Only enabling the tabs buttons (no 'DA' nor 'TA' due to sensitivity issues)
     if (enableSensors((uint8_t)(0x0F)) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     if (enableRepeat((uint8_t)(0x0F)) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     
-    if (setSensorInputConfig1(MaxDurationcap1206::MAX_DUR_05600, RepeatRateCap1206::REP_RATE_175) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
-    if (setSensorInputConfig2(MinForRepeatCap1206::MIN_PER_420) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
-    if (setAverageAndSampling(AveragedSamplesCap1206::SMPL_008, SampleTimeCap1206::US_1280, CycleTime1206::MS_070) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
-    if (setSensorInputNoiseThreshold(SensNoiseThrsCap1206::PER_375) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
-    if (setCalibrations((uint8_t)(0x3F)) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL; // Calibrate all sensors on start
-    if (enableInterrupt((uint8_t)(0x00)) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
-    if (setRecalConfig(false, false, false, NegDeltaCountCap1206::COUNT_16, CalConfigCap1206::CNT_064_TIME_0064) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
+    if (setSensorInputConfig1(MaxDurationcap1206::MAX_DUR_05600, 
+                              RepeatRateCap1206::REP_RATE_175) 
+                              == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
+    if (setSensorInputConfig2(MinForRepeatCap1206::MIN_PER_420) == CAP1206_TRANSFER_FAIL) 
+        return CAP1206_TRANSFER_FAIL;
+    if (setAverageAndSampling(AveragedSamplesCap1206::SMPL_008, 
+                              SampleTimeCap1206::US_1280, 
+                              CycleTime1206::MS_070) 
+                              == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
+    if (setSensorInputNoiseThreshold(SensNoiseThrsCap1206::PER_375) == CAP1206_TRANSFER_FAIL)
+        return CAP1206_TRANSFER_FAIL;
+    
+    // Calibrate all sensors on start
+    if (setCalibrations((uint8_t)(0x3F)) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL; 
+    if (enableInterrupt((uint8_t)(0x0F)) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
+    if (setRecalConfig(false, 
+                       false, 
+                       false, 
+                       NegDeltaCountCap1206::COUNT_16, 
+                       CalConfigCap1206::CNT_064_TIME_0064) 
+                       == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     if (setButtonThresholds(defaultThresholds) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     
     // Currently disabling multiple touch detection and blocking
