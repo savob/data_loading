@@ -192,6 +192,13 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
         usedGamma = true;
         sampleAudio = true;
         if (returnState) state = ledFSMstates::AUD_UNI;
+        if (advanceState) state = ledFSMstates::AUD_HORI;
+        break;
+    case ledFSMstates::AUD_HORI:
+        audioHoriSpectrumLED(10, lMag, rMag, userControl);
+        usedGamma = true;
+        sampleAudio = true;
+        if (returnState) state = ledFSMstates::AUD_BALANCE;
         if (advanceState) state = ledFSMstates::SOLID;
         break;
     
@@ -199,7 +206,7 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
         uniformLED(128, false);
         usedGamma = false;
         sampleAudio = false;
-        if (returnState) state = ledFSMstates::AUD_BALANCE;
+        if (returnState) state = ledFSMstates::AUD_HORI;
         if (advanceState) state = ledFSMstates::BREATH;
         break;
     }
@@ -976,4 +983,80 @@ void audioBalanceLED(unsigned long stepMS, double leftRMS, double rightRMS) {
     }
     // Serial.println("");
     paintColumns(colMag, true);
+}
+
+/**
+ * \brief Trims the spectrum response to cover half the LEDs
+ * 
+ * \param lIn Left audio spectrum
+ * \param rIn Right audio spectrum
+ * \param lOut Array to record trimmed spectrum for left channel
+ * \param rOut Array to record trimmed spectrum for right channel
+ * 
+ * \note Input arrays are assumed to be of size `NUM_SPECTRUM`
+ * \note Output arrays are assumed to be of size `NUM_LED / 2`
+ */
+void filterSpectrum(double lIn[], double rIn[], double lOut[], double rOut[]) {
+    /* Focus is on trimming quick and easy
+
+       Currently focusing on the lower portion of the spectrum since our perception is logarithmic.
+       Then using alternating samples for the remainder since we can't use alternating samples for
+       the entire trimmed spectrum.
+
+       This scheme is basically inadmissable for any meaningful processing but that's not what
+       we're looking for here. Just pretty lights.
+    */
+    const int LOWER_END = 4;
+    
+    for (int i = 0; i < LOWER_END; i++) {
+        lOut[i] = lIn[i];
+        rOut[i] = rIn[i];
+    }
+    for (int i = LOWER_END; i < (NUM_LED / 2); i++) {
+        int newIndex;
+        newIndex = (i - LOWER_END) * 2;
+        newIndex = newIndex + LOWER_END;
+
+        lOut[i] = lIn[newIndex];
+        rOut[i] = rIn[newIndex];
+    }
+}
+
+/**
+ * \brief Horizontal spectrum graph across the entire board
+ * 
+ * \param stepMS Time between updates (ms)
+ * \param left Left spectrum magnitudes
+ * \param right Right spectrum magnitudes
+ * \param leftToRight Should the lowest frequencies start at the left (true) or right
+ */
+void audioHoriSpectrumLED(unsigned long stepMS, double left[], double right[], bool leftToRight) {
+    const double SCALING = 4.0;
+
+    static unsigned long nextMark = 0;      // Marks next time to adjust brightness
+    unsigned long currentTime = millis();
+
+    // Check if it is time to adjust effects or not
+    if (nextMark > currentTime) return;
+    nextMark = currentTime + stepMS;
+    // There's no need to handle resets since this is a instantanious effect
+
+    // Acquire the trimmed response and combine into one array
+    double lRes[NUM_LED / 2], rRes[NUM_LED / 2]; 
+    filterSpectrum(left, right, lRes, rRes);
+    for (int i = 0; i < (NUM_LED / 2); i++) {
+        lRes[i] = lRes[i] + rRes[i];
+    }
+
+    // Get the levels for the graph
+    // This will lose some of the higher frequency marks, oh well
+    ledlevel_t columns[NUM_COL];
+    for (int i = 0; i < NUM_COL; i++) {
+        lRes[i] = lRes[i] * SCALING;
+        
+        if (leftToRight) columns[i] = lRes[i];
+        else columns[NUM_COL - (i + 1)] = lRes[i];
+    }
+
+    paintColumns(columns, true);
 }

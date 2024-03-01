@@ -61,4 +61,7 @@ void trackingLED(unsigned long stepMS, unsigned long swapDurMS = 500, unsigned i
 void bumpsLED(unsigned long stepMS, uint8_t probOfStart = 3);
 void audioUniformLED(unsigned long stepMS, double leftRMS, double rightRMS);
 void audioBalanceLED(unsigned long stepMS, double leftRMS, double rightRMS);
+
+void filterSpectrum(double lIn[], double rIn[], double lOut[], double rOut[]);
+void audioHoriSpectrumLED(unsigned long stepMS, double left[], double right[], bool leftToRight = true);
 #endif

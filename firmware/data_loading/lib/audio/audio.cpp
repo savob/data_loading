@@ -7,21 +7,21 @@
 const pin_size_t R_IN = 26;
 const pin_size_t L_IN = 27;
 
-const uint16_t NUM_SAMPLES = 128;
-const uint16_t NUM_MAGNITUDES = NUM_SAMPLES / 2;
+const uint16_t NUM_AUDIO_SAMPLES = 128; // Number of samples taken for audio FFT
+const uint16_t NUM_SPECTRUM = NUM_AUDIO_SAMPLES / 2; // Number of entries in the audio spectrograph
 
 const double SAMPLE_FREQ = 25641; // Results in almost 200 Hz wide buckets
 const unsigned int SAMPLE_PER_US = 1000000.0 * (1.0 / SAMPLE_FREQ);
 
-double vReal_R[NUM_SAMPLES];
-double vImag_R[NUM_SAMPLES];
-double vReal_L[NUM_SAMPLES];
-double vImag_L[NUM_SAMPLES];
-int16_t wave_R[NUM_SAMPLES];
-int16_t wave_L[NUM_SAMPLES];
+double vReal_R[NUM_AUDIO_SAMPLES];
+double vImag_R[NUM_AUDIO_SAMPLES];
+double vReal_L[NUM_AUDIO_SAMPLES];
+double vImag_L[NUM_AUDIO_SAMPLES];
+int16_t wave_R[NUM_AUDIO_SAMPLES];
+int16_t wave_L[NUM_AUDIO_SAMPLES];
 
-arduinoFFT FFTright = arduinoFFT(vReal_R, vImag_R, NUM_SAMPLES, SAMPLE_FREQ);
-arduinoFFT FFTleft = arduinoFFT(vReal_L, vImag_L, NUM_SAMPLES, SAMPLE_FREQ);
+arduinoFFT FFTright = arduinoFFT(vReal_R, vImag_R, NUM_AUDIO_SAMPLES, SAMPLE_FREQ);
+arduinoFFT FFTleft = arduinoFFT(vReal_L, vImag_L, NUM_AUDIO_SAMPLES, SAMPLE_FREQ);
 
 /**
  * \brief Sets up audio sampling system
@@ -51,7 +51,7 @@ int setupAudio() {
 void readAudio(double leftMag[], double rightMag[], double* leftRMS, double* rightRMS) {
     // Sample collection
     unsigned long nextMarkUS = micros();
-    for (int i = 0; i < NUM_SAMPLES; i++) {
+    for (int i = 0; i < NUM_AUDIO_SAMPLES; i++) {
         wave_R[i] = analogRead(R_IN);
         wave_L[i] = analogRead(L_IN);      
         while(micros() - nextMarkUS < SAMPLE_PER_US){
@@ -63,7 +63,7 @@ void readAudio(double leftMag[], double rightMag[], double* leftRMS, double* rig
     // FFT Data preparation (1.7ms)
     *leftRMS = 0;
     *rightRMS = 0;
-    for (int i = 0; i < NUM_SAMPLES; i++) {
+    for (int i = 0; i < NUM_AUDIO_SAMPLES; i++) {
         // Normalize ADC readings
         vReal_R[i] = ((double)wave_R[i] / 2048.0) - 1.0;
         vReal_L[i] = ((double)wave_L[i] / 2048.0) - 1.0;
@@ -76,8 +76,8 @@ void readAudio(double leftMag[], double rightMag[], double* leftRMS, double* rig
     }
 
     // Finish RMS calculations
-    *leftRMS = *leftRMS / (float)NUM_SAMPLES;
-    *rightRMS = *rightRMS / (float)NUM_SAMPLES;
+    *leftRMS = *leftRMS / (float)NUM_AUDIO_SAMPLES;
+    *rightRMS = *rightRMS / (float)NUM_AUDIO_SAMPLES;
     *leftRMS = sqrt(*leftRMS);
     *rightRMS = sqrt(*rightRMS);
 
@@ -95,7 +95,7 @@ void readAudio(double leftMag[], double rightMag[], double* leftRMS, double* rig
     // printSampling(); // Comment out FFT calculations before this if active
 
     // Copy normalized values to different memory location
-    for (int i = 0; i < NUM_MAGNITUDES; i++) {
+    for (int i = 0; i < NUM_SPECTRUM; i++) {
         leftMag[i] = normalizeFreqMag(vReal_L[i]);
         rightMag[i] = normalizeFreqMag(vReal_R[i]);
     }
@@ -135,35 +135,35 @@ double normalizeFreqMag(double mag) {
 void printSampling(bool left) {
     if (left == true) {
         Serial.println("Left Data:");
-        printVector(vReal_L, NUM_SAMPLES, SamplingScale::SCL_TIME);
+        printVector(vReal_L, NUM_AUDIO_SAMPLES, SamplingScale::SCL_TIME);
         FFTleft.Windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
         Serial.println("Left Weighed data:");
-        printVector(vReal_L, NUM_SAMPLES, SamplingScale::SCL_TIME);
+        printVector(vReal_L, NUM_AUDIO_SAMPLES, SamplingScale::SCL_TIME);
         FFTleft.Compute(FFT_FORWARD);
         Serial.println("Left Computed Real values:");
-        printVector(vReal_L, NUM_SAMPLES, SamplingScale::SCL_INDEX);
+        printVector(vReal_L, NUM_AUDIO_SAMPLES, SamplingScale::SCL_INDEX);
         Serial.println("Left Computed Imaginary values:");
-        printVector(vImag_L, NUM_SAMPLES, SamplingScale::SCL_INDEX);
+        printVector(vImag_L, NUM_AUDIO_SAMPLES, SamplingScale::SCL_INDEX);
         FFTleft.ComplexToMagnitude();
         Serial.println("Left Computed magnitudes:");
-        printVector(vReal_L, NUM_MAGNITUDES, SamplingScale::SCL_FREQUENCY);
+        printVector(vReal_L, NUM_SPECTRUM, SamplingScale::SCL_FREQUENCY);
         double x = FFTleft.MajorPeak();
         Serial.println(x, 6); //Print out what frequency is the most dominant.
     }
     else {
         Serial.println("Right Data:");
-        printVector(vReal_R, NUM_SAMPLES, SamplingScale::SCL_TIME);
+        printVector(vReal_R, NUM_AUDIO_SAMPLES, SamplingScale::SCL_TIME);
         FFTleft.Windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
         Serial.println("drivers[1].initialize();Right Weighed data:");
-        printVector(vReal_R, NUM_SAMPLES, SamplingScale::SCL_TIME);
+        printVector(vReal_R, NUM_AUDIO_SAMPLES, SamplingScale::SCL_TIME);
         FFTleft.Compute(FFT_FORWARD);
         Serial.println("Right Computed Real values:");
-        printVector(vReal_R, NUM_SAMPLES, SamplingScale::SCL_INDEX);
+        printVector(vReal_R, NUM_AUDIO_SAMPLES, SamplingScale::SCL_INDEX);
         Serial.println("Right Computed Imaginary values:");
-        printVector(vImag_R, NUM_SAMPLES, SamplingScale::SCL_INDEX);
+        printVector(vImag_R, NUM_AUDIO_SAMPLES, SamplingScale::SCL_INDEX);
         FFTleft.ComplexToMagnitude();
         Serial.println("Right Computed magnitudes:");
-        printVector(vReal_R, NUM_MAGNITUDES, SamplingScale::SCL_FREQUENCY);
+        printVector(vReal_R, NUM_SPECTRUM, SamplingScale::SCL_FREQUENCY);
         double x = FFTright.MajorPeak();
         Serial.println(x, 6); //Print out what frequency is the most dominant.
     }
@@ -187,7 +187,7 @@ void printVector(double *vData, uint16_t bufferSize, SamplingScale scaleType) {
             abscissa = ((i * 1.0) / SAMPLE_FREQ);
             break;
         case SamplingScale::SCL_FREQUENCY:
-            abscissa = ((i * 1.0 * SAMPLE_FREQ) / NUM_SAMPLES);
+            abscissa = ((i * 1.0 * SAMPLE_FREQ) / NUM_AUDIO_SAMPLES);
             break;
         default: // Just use index
             abscissa = i;
