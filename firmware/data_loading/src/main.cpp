@@ -28,24 +28,28 @@ void setup() {
     }
 
     Serial.begin(112500);
-    while (!Serial) delay(10); // Wait for USB to open for debug messages
+    // while (!Serial) delay(10); // Wait for USB to open for debug messages
     Serial.println("\n\nSTARTING DATA BOARD....");
 
     if (setupAudio() == 0) Serial.println("AUDIO INPUT CONFIGURED SUCCESSFULLY");
     else Serial.println("AUDIO INPUT CONFIGURE ERROR");
+    delay(100);
 
     initializeLED(drivers);
     int test[] = {IS31_TRANSFER_SUCCESS, IS31_TRANSFER_SUCCESS};
     test[0] = drivers[0].initialize();
+    delay(100);
     test[1] = drivers[1].initialize();
     if ((test[0] == IS31_TRANSFER_SUCCESS) && (test[1] == IS31_TRANSFER_SUCCESS)) {
         Serial.println("LED DRIVERS CONFIGURED SUCCESSFULLY");
     }
     else Serial.println("LED DRIVER CONFIGURE ERROR");
+    delay(100);
     
     bool touchSuccess = touch.initialize() == CAP1206_TRANSFER_SUCCESS;
     if (touchSuccess) Serial.println("TOUCH SENSOR CONFIGURED SUCCESSFULLY");
     else Serial.println("TOUCH SENSOR CONFIGURE ERROR");
+    delay(100);
 
     Serial.println("LAUNCHING!\n");
     // delay(2000);
