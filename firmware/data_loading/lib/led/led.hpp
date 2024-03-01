@@ -57,4 +57,5 @@ void waveVerLED(unsigned long periodMS, bool upwards = true);
 void waveHorLED(unsigned long periodMS, bool rightwards = true);
 void cloudLED(unsigned long stepMS);
 void trackingLED(unsigned long stepMS, unsigned long swapDurMS = 500, unsigned int widthSwap = 3, uint8_t probOfSwap = 3);
+void bumpsLED(unsigned long stepMS, uint8_t probOfStart = 3);
 #endif

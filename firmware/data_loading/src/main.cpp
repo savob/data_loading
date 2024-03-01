@@ -57,7 +57,7 @@ void setup() {
 void loop() {
     uint8_t pads = 0;
     touch.readSensors(&pads);
-    LEDfsm(ledFSMstates::SPINNING, pads);
+    LEDfsm(ledFSMstates::BUMPS, pads);
 
     // double left[64], right[64], leftRMS, rightRMS;
     // readAudio(left, right, &leftRMS, &rightRMS);

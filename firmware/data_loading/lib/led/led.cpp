@@ -135,6 +135,9 @@ void LEDfsm(ledFSMstates state, uint8_t buttons) {
     case ledFSMstates::TRACKING:
         trackingLED(10, 500, 2, 3);
         break;
+    case ledFSMstates::BUMPS:
+        bumpsLED(10);
+        break;
     
     default: // Solid is default case
         uniformLED(128);
@@ -181,7 +184,7 @@ bool checkReset(unsigned long mark, unsigned long stepPeriod, unsigned long curT
  * \brief Ensures an index for LEDs is valid, rolls it over if needed
  * 
  * \param ind Index to verify
- * \param limit Upper limit to rollover at (default is number of LEDs)
+ * \param limit Upper limit to rollover at
  * 
  * \return Index in the valid range
  */
@@ -362,8 +365,9 @@ void spinningLED(unsigned long periodMS, bool clockwise) {
     const ledInd_t SPACING = NUM_LED / NUM_BUMPS;
     ledlevel_t STAGES[] = {63, 55, 50, 45, 40, 35, 25, 20, BASE_INTENSITY}; 
     // Gamma intensities of the bumps going around
-    const int NUM_STAGES = sizeof(STAGES) / sizeof(STAGES[0]);
     // Need to include background to reset 
+    const int NUM_STAGES = sizeof(STAGES) / sizeof(STAGES[0]);
+
 
     static unsigned long nextMark = 0;      // Marks next time to adjust brightness
     unsigned long currentTime = millis();
@@ -601,9 +605,9 @@ void cloudLED(unsigned long stepMS) {
  * \brief Tracking lines effect (randomly have columns swap)
  * 
  * \param stepMS Period in milliseconds between each adjustment cycle
- * \param swapDurMS Duration a swap should last in milliseconds (default is 500)
- * \param widthSwap Distance of columns to be swapped (default is 3)
- * \param probOfSwap Likelihood of a swap per cycle out of 255 (default is 3)
+ * \param swapDurMS Duration a swap should last in milliseconds
+ * \param widthSwap Distance of columns to be swapped
+ * \param probOfSwap Likelihood of a swap per cycle out of 255
  * 
  * \note Idle effect is that of cloud but done in columns for visible swapping
  */
@@ -716,4 +720,125 @@ void trackingLED(unsigned long stepMS, unsigned long swapDurMS,
     }
 
     paintColumns(colIntensity, true);
+}
+
+/**
+ * \brief Has some bumps moving around the board edge randomly
+ * 
+ * \param stepMS Period in milliseconds between each adjustment cycle
+ * \param probOfStart Likelihood of a swap per cycle out of 255
+ */
+void bumpsLED(unsigned long stepMS, uint8_t probOfStart) {
+    const ledlevel_t BASE_INTENSITY = 10;
+    const unsigned int NUM_BUMP = 2;                // Number of bumps
+    const unsigned int MAX_MOVEMENT_PERIOD = 50;    // Maximum period between bump steps
+    const unsigned int MIN_MOVEMENT_PERIOD = 10;    // Minimum period for bump steps
+    const unsigned int MAX_MOVEMENT_STEP_SIZE = 1;  // The maximum number of LEDs moved per step
+    const unsigned int MAX_NUMBER_OF_STEPS = 20;    // The maximum number of movement steps per motion
+    ledlevel_t STAGES[] = {63, 55, 35, 20, BASE_INTENSITY}; 
+    // Gamma intensities of the bumps going around
+    // Need to include background to reset 
+    const int NUM_STAGES = sizeof(STAGES) / sizeof(STAGES[0]);
+
+    struct bump_t {
+        unsigned long moveTime = 0; // When to move again (based on `millis()` time)
+        unsigned int movePeriod = 0;
+        ledInd_t location = 0;      // Location of bump center
+        ledInd_t numKeyPoints = 0;
+        ledlevel_t* keypoints;      // Points to array for key stages
+        int motionIncrement = 0;    // Size of each step (counterclockwise if negative)
+        int stepsRemaining = 0;
+    };
+    static struct bump_t bump[NUM_BUMP];
+
+    static unsigned long nextMark = 0;      // Marks next time to adjust brightness
+    unsigned long currentTime = millis();
+
+    // Check if it is time to adjust effects or not
+    if (nextMark > currentTime) return;
+
+    // Handle potential reset
+    bool restart = checkReset(nextMark, stepMS, currentTime);
+    nextMark = currentTime + stepMS; // Update mark after reset check
+    if (restart == true) {
+        // Reset to base
+        uniformGamma(BASE_INTENSITY);
+
+        // Reset bumps
+        const ledInd_t SPACING = NUM_LED / NUM_BUMP;
+        for (unsigned int i = 0; i < NUM_BUMP; i++) {
+            bump[i].location = i * SPACING;
+            bump[i].stepsRemaining = 0;
+            bump[i].keypoints = STAGES;
+            bump[i].numKeyPoints = NUM_STAGES;
+            bump[i].moveTime = 0;
+            bump[i].movePeriod = MAX_MOVEMENT_PERIOD;
+            bump[i].motionIncrement = 0; // Clockwise if true
+        }
+
+        // Do not return, continue to execute
+    }
+
+    // Set up the bumps
+    for (unsigned int i = 0; i < NUM_BUMP; i++) {
+        // Bump on the move?
+        if (bump[i].stepsRemaining > 0) {
+            if (currentTime > bump[i].moveTime) {
+                // Bump on the move!
+                bump[i].location = bump[i].location + bump[i].motionIncrement;
+                bump[i].location = constrainIndex(bump[i].location);
+
+                bump[i].stepsRemaining--;
+                bump[i].moveTime = currentTime + bump[i].movePeriod;
+            }
+            continue; // Skip to next bump
+        }
+
+        // Stationary bump, will it move?
+        unsigned long roll = random();
+        if ((roll & 0xFF) >= probOfStart) continue; // Not moving, go to next bump
+
+        // Set up new motion
+        roll = random();
+        bump[i].stepsRemaining = 1 + (roll & 0xFFUL) % MAX_NUMBER_OF_STEPS;
+
+        // Decide on a motion, occasionally negative
+        bump[i].motionIncrement = 1 + (roll & 0xFF00UL) % MAX_MOVEMENT_STEP_SIZE;
+        if ((roll & 0x10000UL) == 0) bump[i].motionIncrement = -bump[i].motionIncrement;
+
+        bump[i].movePeriod = (roll & 0xFFFE0000UL) % (MAX_MOVEMENT_PERIOD - MIN_MOVEMENT_PERIOD);
+        bump[i].movePeriod = MIN_MOVEMENT_PERIOD + bump[i].movePeriod;
+        bump[i].moveTime = currentTime + bump[i].movePeriod;
+    }
+
+    // Render the bumps
+    // Need to be careful to not overwrite bumps incorrectly when in proximity
+    // Want to preserve the information/brightness of the closest bump
+    for (unsigned int i = 0; i < NUM_BUMP; i++) {
+        LEDgamma[bump[i].location] = bump[i].keypoints[0]; // Always paint crest of a bump
+
+        // Extend out in a direction unless it encounter another bump that will be dominant
+        bool isDomForwards = true;
+        bool isDomBackwards = true;
+        for (ledInd_t offset = 1; offset < NUM_STAGES; offset++) {
+            ledInd_t tarIndFwd = constrainIndex(bump[i].location + offset);
+            ledInd_t tarIndBack = constrainIndex(bump[i].location - offset);
+
+            // Scan along a second offset from the current offset to compare to other bumps
+            for (int so = 0; so < offset; so++) {
+                for (unsigned int c = 0; c < NUM_BUMP; c++) {
+                    ledInd_t doubOffsetFwd = constrainIndex(tarIndFwd + so);
+                    ledInd_t doubOffsetBack = constrainIndex(tarIndFwd - so);
+                    if (bump[c].location == doubOffsetFwd) isDomForwards = false;
+                    if (bump[c].location == doubOffsetBack) isDomBackwards = false;
+                }
+            }
+
+            // Paint only if still dominant in that direction
+            if (isDomForwards) LEDgamma[tarIndFwd] = STAGES[offset];
+            if (isDomBackwards) LEDgamma[tarIndBack] = STAGES[offset];
+        }
+    }
+
+    copyGammaIntoBuffer();
 }
