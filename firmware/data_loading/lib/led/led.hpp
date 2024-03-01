@@ -33,7 +33,8 @@ enum ledFSMstates {
     SPINNING,       // Slowly rotating peaks
     AUD_UNI,        // Uniform brightness based on RMS of audio
     AUD_HORI,       // Horizontal spectrum graph
-    AUD_HORI_SPLIT, // Horizontal spectrum, but split left/right
+    AUD_SPLIT,      // Split spectrum graph left/right
+    AUD_SPLIT_SPIN, // Split spectrum graph left/right, but continuously rotating
     AUD_TRACKING    // Brightness left to right is interpolation of the respective RMSs
 };
 
@@ -41,7 +42,8 @@ void initializeLED(IS31FL3236 drvrs[]);
 void remapLED(IS31FL3236 drvrs[]);
 void rotateLED(ledInd_t amount, bool clockwise = true);
 
-void LEDfsm(uint8_t buttons, ledFSMstates overrideState = ledFSMstates::SOLID, bool override = false);
+void LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double rRMS,
+     ledFSMstates overrideState = ledFSMstates::SOLID, bool override = false);
 
 bool checkReset(unsigned long mark, unsigned long stepPeriod, unsigned long curTime);
 ledInd_t constrainIndex(ledInd_t ind, ledInd_t limit = NUM_LED);
@@ -57,4 +59,5 @@ void waveHorLED(unsigned long periodMS, bool rightwards = true);
 void cloudLED(unsigned long stepMS);
 void trackingLED(unsigned long stepMS, unsigned long swapDurMS = 500, unsigned int widthSwap = 3, uint8_t probOfSwap = 3);
 void bumpsLED(unsigned long stepMS, uint8_t probOfStart = 3);
+void audioUniformLED(unsigned long stepMS, double leftRMS, double rightRMS);
 #endif

@@ -13,7 +13,7 @@ ledInd_t LEDstartIndex[] = {0, 8, 38, 44};
 ledInd_t LEDmiddleIndex[] = {4, 23, 41, 58};
 ledInd_t LEDbutton[] = {44, 42, 40, 38};
 
-const byte PWM_GAMMA_64[64] = {
+const byte PWM_GAMMA[] = {
   0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,
   0x08,0x09,0x0b,0x0d,0x0f,0x11,0x13,0x16,
   0x1a,0x1c,0x1d,0x1f,0x22,0x25,0x28,0x2e,
@@ -23,6 +23,7 @@ const byte PWM_GAMMA_64[64] = {
   0xac,0xb0,0xb9,0xbf,0xc6,0xcb,0xcf,0xd6,
   0xe1,0xe9,0xed,0xf1,0xf6,0xfa,0xfe,0xff
 }; // Gamma levels that are perceived as even steps in brightness
+const unsigned int NUM_GAMMA = sizeof(PWM_GAMMA) / sizeof(PWM_GAMMA[0]);
 
 /**
  * \brief Function to initialize the LEDs
@@ -110,7 +111,8 @@ void rotateLED(ledInd_t amount, bool clockwise) {
  * \param overrideState What state to put the LEDs into if overridden
  * \param override Override state?
  */
-void LEDfsm(uint8_t buttons, ledFSMstates overrideState, bool override) {
+void LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double rRMS,
+            ledFSMstates overrideState, bool override) {
     static ledFSMstates state = ledFSMstates::SOLID;
     static ledFSMstates prevState = ledFSMstates::SOLID;
     static bool invertBrightness = false;
@@ -167,13 +169,19 @@ void LEDfsm(uint8_t buttons, ledFSMstates overrideState, bool override) {
         bumpsLED(10);
         usedGamma = true;
         if (returnState) state = ledFSMstates::TRACKING;
+        if (advanceState) state = ledFSMstates::AUD_UNI;
+        break;
+    case ledFSMstates::AUD_UNI:
+        audioUniformLED(10, lRMS, rRMS);
+        usedGamma = true;
+        if (returnState) state = ledFSMstates::BUMPS;
         if (advanceState) state = ledFSMstates::SOLID;
         break;
     
     default: // Solid is default case
         uniformLED(128, false);
         usedGamma = false;
-        if (returnState) state = ledFSMstates::BUMPS;
+        if (returnState) state = ledFSMstates::AUD_UNI;
         if (advanceState) state = ledFSMstates::BREATH;
         break;
     }
@@ -187,7 +195,7 @@ void LEDfsm(uint8_t buttons, ledFSMstates overrideState, bool override) {
     // Need to improve handling for gamma correction
     if (invertBrightness) {
         if (usedGamma == true) {
-            for (ledInd_t i = 0; i < NUM_LED; i++) LEDgamma[i] = 63 - LEDgamma[i];
+            for (ledInd_t i = 0; i < NUM_LED; i++) LEDgamma[i] = NUM_GAMMA - LEDgamma[i];
             copyGammaIntoBuffer();
         }
         else {
@@ -251,7 +259,7 @@ ledInd_t constrainIndex(ledInd_t ind, ledInd_t limit) {
  * \brief Paints the LEDs in each row a uniform brightness
  * 
  * \param intensities Array of intensities to paint on the rows
- * \param gamma Are intensities gamma levels or not? (0 to 63)
+ * \param gamma Are intensities gamma levels or not? (0 to NUM_GAMMA)
  * 
  * \note Bottom row is row 0
  */
@@ -280,7 +288,7 @@ void paintRows(ledlevel_t intensities[], bool gamma) {
  * \brief Paints the LEDs in each column a uniform brightness
  * 
  * \param intensities Array of intensities to paint on the columns
- * \param gamma Are intensities gamma levels or not? (0 to 63)
+ * \param gamma Are intensities gamma levels or not? (0 to NUM_GAMMA)
  * 
  * \note Left column is column 0
  */
@@ -311,7 +319,7 @@ void paintColumns(ledlevel_t intensities[], bool gamma) {
  * 
  */
 void copyGammaIntoBuffer() {
-    for (ledInd_t i = 0; i < NUM_LED; i++) LEDlevel[i] = PWM_GAMMA_64[LEDgamma[i]];
+    for (ledInd_t i = 0; i < NUM_LED; i++) LEDlevel[i] = PWM_GAMMA[LEDgamma[i]];
 }
 
 /**
@@ -337,7 +345,7 @@ void uniformLED(ledlevel_t intensity, bool gamma) {
  * \note Will intrepret a lack of calls in 
  */
 void breathingLED(unsigned long periodMS) {
-    const ledlevel_t MAX_INTENSITY = 63;
+    const ledlevel_t MAX_INTENSITY = NUM_GAMMA;
     const ledlevel_t MIN_INTENSITY = 0;
     const ledlevel_t intensityStep = 1;
 
@@ -390,7 +398,7 @@ void spinningLED(unsigned long periodMS, bool clockwise) {
     const ledlevel_t BASE_INTENSITY = 10;
     const int NUM_BUMPS = 2; // Number of light "bumps" going around
     const ledInd_t SPACING = NUM_LED / NUM_BUMPS;
-    ledlevel_t STAGES[] = {63, 55, 50, 45, 40, 35, 25, 20, BASE_INTENSITY}; 
+    ledlevel_t STAGES[] = {NUM_GAMMA, 55, 50, 45, 40, 35, 25, 20, BASE_INTENSITY}; 
     // Gamma intensities of the bumps going around
     // Need to include background to reset 
     const int NUM_STAGES = sizeof(STAGES) / sizeof(STAGES[0]);
@@ -507,7 +515,7 @@ void waveVerLED(unsigned long periodMS, bool upwards) {
  * \param rightwards Should the wave scroll rightwards or not
  */
 void waveHorLED(unsigned long periodMS, bool rightwards) {
-    const ledlevel_t END_INTENSITY = 63;
+    const ledlevel_t END_INTENSITY = NUM_GAMMA;
     const ledlevel_t START_INTENSITY = 10;
     const int INTENSITY_INCR = (START_INTENSITY < END_INTENSITY) ? 1 : -1;
     const ledlevel_t PROPAGATE_LVL = 32; // Level to start next row
@@ -762,7 +770,7 @@ void bumpsLED(unsigned long stepMS, uint8_t probOfStart) {
     const unsigned int MIN_MOVEMENT_PERIOD = 10;    // Minimum period for bump steps
     const unsigned int MAX_MOVEMENT_STEP_SIZE = 1;  // The maximum number of LEDs moved per step
     const unsigned int MAX_NUMBER_OF_STEPS = 20;    // The maximum number of movement steps per motion
-    ledlevel_t STAGES[] = {63, 55, 35, 20, BASE_INTENSITY}; 
+    ledlevel_t STAGES[] = {NUM_GAMMA, 55, 35, 20, BASE_INTENSITY}; 
     // Gamma intensities of the bumps going around
     // Need to include background to reset 
     const int NUM_STAGES = sizeof(STAGES) / sizeof(STAGES[0]);
@@ -868,4 +876,35 @@ void bumpsLED(unsigned long stepMS, uint8_t probOfStart) {
     }
 
     copyGammaIntoBuffer();
+}
+
+/**
+ * \brief Uniform illumination based on overall sound RMS
+ * 
+ * \param stepMS Time between updates
+ * \param leftRMS RMS of left audio channel (should be between 0 and 1)
+ * \param rightRMS RMS of right audio channel (should be between 0 and 1)
+ * 
+ * \note Although this doesn't truely need to be paced, it's included to pace updates to lighting chips
+ */
+void audioUniformLED(unsigned long stepMS, double leftRMS, double rightRMS) {
+    const double SCALING = 3.0;
+
+    static unsigned long nextMark = 0;      // Marks next time to adjust brightness
+    unsigned long currentTime = millis();
+
+    // Check if it is time to adjust effects or not
+    if (nextMark > currentTime) return;
+    nextMark = currentTime + stepMS;
+
+    // There's no need to handle resets since this is a momentary effect
+
+    // Determine overall RMS, clamp it to 1 at max
+    double overall = leftRMS * leftRMS + rightRMS * rightRMS;
+    overall = SCALING * sqrt(overall / 2.0);
+    if (overall >= 1.0) overall = 0.999;
+
+    ledlevel_t level = overall * NUM_GAMMA;
+
+    uniformLED(level, true);
 }
