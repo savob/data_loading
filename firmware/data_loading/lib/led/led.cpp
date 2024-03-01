@@ -116,7 +116,7 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
     static ledFSMstates state = ledFSMstates::SOLID;
     static ledFSMstates prevState = ledFSMstates::SOLID;
     static bool invertBrightness = false;
-    static bool userControl = false; // Used for user togglable setting
+    static bool userControl = true; // Used for user togglable setting
 
     bool advanceState   = ((buttons & 0b0010) != 0);
     bool returnState    = ((buttons & 0b0100) != 0);
@@ -199,6 +199,13 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
         usedGamma = true;
         sampleAudio = true;
         if (returnState) state = ledFSMstates::AUD_BALANCE;
+        if (advanceState) state = ledFSMstates::AUD_SPLIT;
+        break;
+    case ledFSMstates::AUD_SPLIT:
+        audioSplitSpectrumLED(10, lMag, rMag, userControl);
+        usedGamma = true;
+        sampleAudio = true;
+        if (returnState) state = ledFSMstates::AUD_HORI;
         if (advanceState) state = ledFSMstates::SOLID;
         break;
     
@@ -206,7 +213,7 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
         uniformLED(128, false);
         usedGamma = false;
         sampleAudio = false;
-        if (returnState) state = ledFSMstates::AUD_HORI;
+        if (returnState) state = ledFSMstates::AUD_SPLIT;
         if (advanceState) state = ledFSMstates::BREATH;
         break;
     }
@@ -1031,7 +1038,7 @@ void filterSpectrum(double lIn[], double rIn[], double lOut[], double rOut[]) {
  * \param leftToRight Should the lowest frequencies start at the left (true) or right
  */
 void audioHoriSpectrumLED(unsigned long stepMS, double left[], double right[], bool leftToRight) {
-    const double SCALING = 4.0;
+    const double SCALING = NUM_GAMMA / 2; // Spectrum levels are clamped to 1
 
     static unsigned long nextMark = 0;      // Marks next time to adjust brightness
     unsigned long currentTime = millis();
@@ -1059,4 +1066,48 @@ void audioHoriSpectrumLED(unsigned long stepMS, double left[], double right[], b
     }
 
     paintColumns(columns, true);
+}
+
+/**
+ * \brief Shows a split spectrum for each channel
+ * 
+ * \param stepMS Time between updates (ms)
+ * \param left Left spectrum magnitudes
+ * \param right Right spectrum magnitudes
+ * \param bottomToTop Should the spectrum start with the lowest frequencies at the bottom (true) or not
+ */
+void audioSplitSpectrumLED(unsigned long stepMS, double left[], double right[], bool bottomToTop) {
+    const double SCALING = NUM_GAMMA;
+
+    static unsigned long nextMark = 0;      // Marks next time to adjust brightness
+    unsigned long currentTime = millis();
+
+    // Check if it is time to adjust effects or not
+    if (nextMark > currentTime) return;
+    nextMark = currentTime + stepMS;
+    // There's no need to handle resets since this is a instantanious effect
+
+    // Acquire the trimmed response and combine into one array
+    double lRes[NUM_LED / 2], rRes[NUM_LED / 2]; 
+    filterSpectrum(left, right, lRes, rRes);
+
+    int baseLocation = 0;
+    if (bottomToTop) baseLocation = LEDmiddleIndex[1];
+    else baseLocation = LEDmiddleIndex[3];
+
+    // Get the levels for the graph
+    for (int i = 0; i < (NUM_LED / 2); i++) {
+        ledInd_t curLeft, curRight;
+        if (bottomToTop) {
+            curLeft = constrainIndex(baseLocation + i + 1);
+            curRight = constrainIndex(baseLocation - i);
+        }
+        else {
+            curRight = constrainIndex(baseLocation + i + 1);
+            curLeft = constrainIndex(baseLocation - i);
+        }
+        LEDgamma[curLeft] = lRes[i] * SCALING;
+        LEDgamma[curRight] = rRes[i] * SCALING;
+    }
+    copyGammaIntoBuffer();
 }

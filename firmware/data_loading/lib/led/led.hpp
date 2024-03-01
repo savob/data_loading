@@ -64,4 +64,5 @@ void audioBalanceLED(unsigned long stepMS, double leftRMS, double rightRMS);
 
 void filterSpectrum(double lIn[], double rIn[], double lOut[], double rOut[]);
 void audioHoriSpectrumLED(unsigned long stepMS, double left[], double right[], bool leftToRight = true);
+void audioSplitSpectrumLED(unsigned long stepMS, double left[], double right[], bool bottomToTop = true);
 #endif
