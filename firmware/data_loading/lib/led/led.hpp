@@ -48,10 +48,9 @@ ledInd_t constrainIndex(ledInd_t ind, ledInd_t limit = NUM_LED);
 void paintColumns(ledlevel_t intensities[], bool gamma = false);
 void paintRows(ledlevel_t intensities[], bool gamma = false);
 void copyGammaIntoBuffer();
-void uniformGamma(ledlevel_t gamma);
 
 void breathingLED(unsigned long periodMS);
-void uniformLED(ledlevel_t intensity);
+void uniformLED(ledlevel_t intensity, bool gamma);
 void spinningLED(unsigned long periodMS, bool clockwise = true);
 void waveVerLED(unsigned long periodMS, bool upwards = true);
 void waveHorLED(unsigned long periodMS, bool rightwards = true);

@@ -124,62 +124,74 @@ void LEDfsm(uint8_t buttons, ledFSMstates overrideState, bool override) {
     if (toggleUser) userControl = !userControl;
     if (toggleInvert) invertBrightness = !invertBrightness;
 
-    if (prevState != state) {
-        // Do we want some sort of gradual shift between states?
-    }
-
+    bool usedGamma = true; // Keeps track of if a state used gamma levels or not
     if (override) state = overrideState;
     switch (state) {
     case ledFSMstates::BREATH:
         breathingLED(5000);
+        usedGamma = true;
         if (returnState) state = ledFSMstates::SOLID;
         if (advanceState) state = ledFSMstates::SPINNING;
         break;
     case ledFSMstates::SPINNING:
         spinningLED(5000, userControl);
+        usedGamma = true;
         if (returnState) state = ledFSMstates::BREATH;
         if (advanceState) state = ledFSMstates::WAVE_HORI;
         break;
     case ledFSMstates::WAVE_HORI:
         waveHorLED(3000, userControl);
+        usedGamma = true;
         if (returnState) state = ledFSMstates::SPINNING;
         if (advanceState) state = ledFSMstates::WAVE_VERT;
         break;
     case ledFSMstates::WAVE_VERT:
         waveVerLED(3000, userControl);
+        usedGamma = true;
         if (returnState) state = ledFSMstates::WAVE_HORI;
         if (advanceState) state = ledFSMstates::CLOUD;
         break;
     case ledFSMstates::CLOUD:
         cloudLED(10);
+        usedGamma = true;
         if (returnState) state = ledFSMstates::WAVE_VERT;
         if (advanceState) state = ledFSMstates::TRACKING;
         break;
     case ledFSMstates::TRACKING:
         trackingLED(10, 500, 2, 3);
+        usedGamma = true;
         if (returnState) state = ledFSMstates::CLOUD;
         if (advanceState) state = ledFSMstates::BUMPS;
         break;
     case ledFSMstates::BUMPS:
         bumpsLED(10);
+        usedGamma = true;
         if (returnState) state = ledFSMstates::TRACKING;
         if (advanceState) state = ledFSMstates::SOLID;
         break;
     
     default: // Solid is default case
-        uniformLED(128);
+        uniformLED(128, false);
+        usedGamma = false;
         if (returnState) state = ledFSMstates::BUMPS;
         if (advanceState) state = ledFSMstates::BREATH;
         break;
     }
 
+    if (prevState != state) {
+        // Do we want some sort of gradual shift between states?
+    }
     prevState = state;
 
     // Handle inverting LED brightness as needed
     // Need to improve handling for gamma correction
     if (invertBrightness) {
-        for (ledInd_t i = 0; i < NUM_LED; i++) {
-            LEDlevel[i] = 255 - LEDlevel[i];
+        if (usedGamma == true) {
+            for (ledInd_t i = 0; i < NUM_LED; i++) LEDgamma[i] = 63 - LEDgamma[i];
+            copyGammaIntoBuffer();
+        }
+        else {
+            for (ledInd_t i = 0; i < NUM_LED; i++) LEDlevel[i] = 255 - LEDlevel[i];
         }
     }
 }
@@ -246,17 +258,25 @@ ledInd_t constrainIndex(ledInd_t ind, ledInd_t limit) {
 void paintRows(ledlevel_t intensities[], bool gamma) {
     if (gamma == true) {
         // Right side
-        for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) 
+        for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) {
+            LEDgamma[i] = intensities[NUM_ROW - i];
             LEDlevel[i] = PWM_GAMMA_64[intensities[NUM_ROW - i]];
+        }
         // Bottom row
-        for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) 
+        for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) {
+            LEDgamma[i] = intensities[0];
             LEDlevel[i] = PWM_GAMMA_64[intensities[0]];
+        }
         // Left side
-        for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) 
+        for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) {
+            LEDgamma[i] = intensities[i - LEDstartIndex[2]];
             LEDlevel[i] = PWM_GAMMA_64[intensities[i - LEDstartIndex[2]]];
+        }
         // Top row
-        for (ledInd_t i = LEDstartIndex[3]; i < NUM_LED; i++) 
+        for (ledInd_t i = LEDstartIndex[3]; i < NUM_LED; i++) {
+            LEDgamma[i] = intensities[NUM_ROW - 1];
             LEDlevel[i] = PWM_GAMMA_64[intensities[NUM_ROW - 1]];
+        }
     }
     else {
         // Right side
@@ -285,17 +305,25 @@ void paintRows(ledlevel_t intensities[], bool gamma) {
 void paintColumns(ledlevel_t intensities[], bool gamma) {
     if (gamma == true) {
         // Right side
-        for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) 
+        for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) {
+            LEDgamma[i] = intensities[NUM_COL - 1];
             LEDlevel[i] = PWM_GAMMA_64[intensities[NUM_COL - 1]];
+        }
         // Bottom row
-        for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) 
+        for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) {
+            LEDgamma[i] = intensities[(NUM_COL - 1) - (i - LEDstartIndex[1])];
             LEDlevel[i] = PWM_GAMMA_64[intensities[(NUM_COL - 1) - (i - LEDstartIndex[1])]];
+        }
         // Left side
-        for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) 
+        for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) {
+            LEDgamma[i] = intensities[0];
             LEDlevel[i] = PWM_GAMMA_64[intensities[0]];
+        }
         // Top row, since it is a bit narrower we skip the outer values
-        for (ledInd_t i = LEDstartIndex[3]; i < NUM_LED; i++) 
+        for (ledInd_t i = LEDstartIndex[3]; i < NUM_LED; i++) {
+            LEDgamma[i] = intensities[(i + 1) - LEDstartIndex[3]];
             LEDlevel[i] = PWM_GAMMA_64[intensities[(i + 1) - LEDstartIndex[3]]];
+        }
     }
     else {
         // Right side
@@ -322,22 +350,19 @@ void copyGammaIntoBuffer() {
 }
 
 /**
- * \brief Sets LEDs to a uniform gamma level
- * 
- * \param gamma Gamma level
- */
-void uniformGamma(ledlevel_t gamma) {
-    for (ledInd_t i = 0; i < NUM_LED; i++) LEDgamma[i] = gamma;
-    copyGammaIntoBuffer();
-}
-
-/**
  * \brief Sets all LEDs to a uniform brightness
  * 
  * \param intensity LED level to set
+ * \param gamma Is this a gamma level (true) or direct intensity (false)
  */
-void uniformLED(ledlevel_t intensity) {
-    for (ledInd_t i = 0; i < NUM_LED; i++) LEDlevel[i] = intensity;
+void uniformLED(ledlevel_t intensity, bool gamma) {
+    if (gamma == false) {
+        for (ledInd_t i = 0; i < NUM_LED; i++) LEDlevel[i] = intensity;
+    }
+    else {
+        for (ledInd_t i = 0; i < NUM_LED; i++) LEDgamma[i] = intensity;
+        copyGammaIntoBuffer();
+    }
 }
 
 /**
@@ -367,7 +392,7 @@ void breathingLED(unsigned long periodMS) {
     if (restart == true) {
         breathingIntensity = MIN_INTENSITY;
         climbing = true;
-        uniformGamma(breathingIntensity);
+        uniformLED(breathingIntensity, true);
         return;
     }
 
@@ -386,7 +411,7 @@ void breathingLED(unsigned long periodMS) {
         }
         else breathingIntensity -= intensityStep;
     }
-    uniformGamma(breathingIntensity);
+    uniformLED(breathingIntensity, true);
 }
 
 /**
@@ -418,7 +443,7 @@ void spinningLED(unsigned long periodMS, bool clockwise) {
     bool restart = checkReset(nextMark, stepMS, currentTime);
     nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
-        uniformGamma(BASE_INTENSITY);
+        uniformLED(BASE_INTENSITY, true);
 
         // Draw the bumps after reset (they will just be rotated)
         for (int_fast8_t b = 0; b < NUM_BUMPS; b++) {
@@ -468,7 +493,7 @@ void waveVerLED(unsigned long periodMS, bool upwards) {
     nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
         for (ledInd_t i = 0; i < NUM_ROW; i++) rowLevels[i] = START_INTENSITY;
-        uniformLED(PWM_GAMMA_64[START_INTENSITY]);
+        uniformLED(START_INTENSITY, true);
 
         if (upwards) location = NUM_ROW - 1;
         else location = 0;
@@ -539,7 +564,7 @@ void waveHorLED(unsigned long periodMS, bool rightwards) {
     nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
         for (ledInd_t i = 0; i < NUM_COL; i++) colLevels[i] = START_INTENSITY;
-        uniformLED(PWM_GAMMA_64[START_INTENSITY]);
+        uniformLED(START_INTENSITY, true);
 
         if (rightwards) location = NUM_COL - 1;
         else location = 0;
@@ -604,7 +629,7 @@ void cloudLED(unsigned long stepMS) {
     nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
         // Reset to middle light level
-        uniformGamma((MIN_INTENSITY + MAX_INTENSITY) / 2);
+        uniformLED((MIN_INTENSITY + MAX_INTENSITY) / 2, true);
         return;
     }
 
@@ -799,7 +824,7 @@ void bumpsLED(unsigned long stepMS, uint8_t probOfStart) {
     nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
         // Reset to base
-        uniformGamma(BASE_INTENSITY);
+        uniformLED(BASE_INTENSITY, true);
 
         // Reset bumps
         const ledInd_t SPACING = NUM_LED / NUM_BUMP;
