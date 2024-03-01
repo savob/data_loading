@@ -206,6 +206,13 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
         usedGamma = true;
         sampleAudio = true;
         if (returnState) state = ledFSMstates::AUD_HORI;
+        if (advanceState) state = ledFSMstates::AUD_SPLIT_SPIN;
+        break;
+    case ledFSMstates::AUD_SPLIT_SPIN:
+        audioSplitSpectrumSpinLED(20, lMag, rMag, userControl);
+        usedGamma = true;
+        sampleAudio = true;
+        if (returnState) state = ledFSMstates::AUD_SPLIT;
         if (advanceState) state = ledFSMstates::SOLID;
         break;
     
@@ -213,7 +220,7 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
         uniformLED(128, false);
         usedGamma = false;
         sampleAudio = false;
-        if (returnState) state = ledFSMstates::AUD_SPLIT;
+        if (returnState) state = ledFSMstates::AUD_SPLIT_SPIN;
         if (advanceState) state = ledFSMstates::BREATH;
         break;
     }
@@ -1110,4 +1117,33 @@ void audioSplitSpectrumLED(unsigned long stepMS, double left[], double right[], 
         LEDgamma[curRight] = rRes[i] * SCALING;
     }
     copyGammaIntoBuffer();
+}
+
+/**
+ * \brief Shows a split spectrum for each channel but gradually rotating around
+ * 
+ * \param stepMS Time between updates (ms)
+ * \param left Left spectrum magnitudes
+ * \param right Right spectrum magnitudes
+ * \param clockwise Should the spectrum start with the lowest frequencies at the bottom (true) or not
+ */
+void audioSplitSpectrumSpinLED(unsigned long stepMS, double left[], double right[], bool clockwise) {
+
+    static unsigned long nextMark = 0;      // Marks next time to adjust brightness
+    unsigned long currentTime = millis();
+
+    // Check if it is time to adjust effects or not
+    if (nextMark > currentTime) return;
+    nextMark = currentTime + stepMS;
+    // There's no need to handle resets since this is a instantanious effect
+
+    // Just run the normal split and then rotate
+    static int rotation = 0;
+    audioSplitSpectrumLED(stepMS, left, right, true);
+    rotateLED(rotation, true);
+
+    // Accumulate rotations this way so rotation can be seemlessly switched
+    if (clockwise) rotation++;
+    else rotation--;
+    rotation = constrainIndex(rotation);
 }
