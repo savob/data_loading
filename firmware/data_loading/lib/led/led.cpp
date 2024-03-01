@@ -1006,7 +1006,7 @@ void filterSpectrum(double lIn[], double rIn[], double lOut[], double rOut[]) {
        This scheme is basically inadmissable for any meaningful processing but that's not what
        we're looking for here. Just pretty lights.
     */
-    const int LOWER_END = 4;
+    const int LOWER_END = 8;
     
     for (int i = 0; i < LOWER_END; i++) {
         lOut[i] = lIn[i];
