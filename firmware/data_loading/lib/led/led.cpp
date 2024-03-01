@@ -256,42 +256,24 @@ ledInd_t constrainIndex(ledInd_t ind, ledInd_t limit) {
  * \note Bottom row is row 0
  */
 void paintRows(ledlevel_t intensities[], bool gamma) {
-    if (gamma == true) {
-        // Right side
-        for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) {
-            LEDgamma[i] = intensities[NUM_ROW - i];
-            LEDlevel[i] = PWM_GAMMA_64[intensities[NUM_ROW - i]];
-        }
-        // Bottom row
-        for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) {
-            LEDgamma[i] = intensities[0];
-            LEDlevel[i] = PWM_GAMMA_64[intensities[0]];
-        }
-        // Left side
-        for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) {
-            LEDgamma[i] = intensities[i - LEDstartIndex[2]];
-            LEDlevel[i] = PWM_GAMMA_64[intensities[i - LEDstartIndex[2]]];
-        }
-        // Top row
-        for (ledInd_t i = LEDstartIndex[3]; i < NUM_LED; i++) {
-            LEDgamma[i] = intensities[NUM_ROW - 1];
-            LEDlevel[i] = PWM_GAMMA_64[intensities[NUM_ROW - 1]];
-        }
-    }
-    else {
-        // Right side
-        for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) 
-            LEDlevel[i] = intensities[NUM_ROW - i];
-        // Bottom row
-        for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) 
-            LEDlevel[i] = intensities[0];
-        // Left side
-        for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) 
-            LEDlevel[i] = intensities[i - LEDstartIndex[2]];
-        // Top row
-        for (ledInd_t i = LEDstartIndex[3]; i < NUM_LED; i++) 
-            LEDlevel[i] = intensities[NUM_ROW - 1];
-    }
+    ledlevel_t* targetBuf = nullptr;
+    if (gamma == true) targetBuf = LEDgamma;
+    else targetBuf = LEDlevel;
+
+    // Right side
+    for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++)
+        targetBuf[i] = intensities[(NUM_ROW - 1) - i];
+    // Bottom row
+    for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++)
+        targetBuf[i] = intensities[0];
+    // Left side
+    for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++)
+        targetBuf[i] = intensities[i - LEDstartIndex[2]];
+    // Top row
+    for (ledInd_t i = LEDstartIndex[3]; i < NUM_LED; i++)
+        targetBuf[i] = intensities[NUM_ROW - 1];
+    
+    if (gamma == true) copyGammaIntoBuffer();
 }
 
 /**
@@ -303,42 +285,25 @@ void paintRows(ledlevel_t intensities[], bool gamma) {
  * \note Left column is column 0
  */
 void paintColumns(ledlevel_t intensities[], bool gamma) {
-    if (gamma == true) {
-        // Right side
-        for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) {
-            LEDgamma[i] = intensities[NUM_COL - 1];
-            LEDlevel[i] = PWM_GAMMA_64[intensities[NUM_COL - 1]];
-        }
-        // Bottom row
-        for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) {
-            LEDgamma[i] = intensities[(NUM_COL - 1) - (i - LEDstartIndex[1])];
-            LEDlevel[i] = PWM_GAMMA_64[intensities[(NUM_COL - 1) - (i - LEDstartIndex[1])]];
-        }
-        // Left side
-        for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) {
-            LEDgamma[i] = intensities[0];
-            LEDlevel[i] = PWM_GAMMA_64[intensities[0]];
-        }
-        // Top row, since it is a bit narrower we skip the outer values
-        for (ledInd_t i = LEDstartIndex[3]; i < NUM_LED; i++) {
-            LEDgamma[i] = intensities[(i + 1) - LEDstartIndex[3]];
-            LEDlevel[i] = PWM_GAMMA_64[intensities[(i + 1) - LEDstartIndex[3]]];
-        }
-    }
-    else {
-        // Right side
-        for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) 
-            LEDlevel[i] = intensities[NUM_COL - 1];
-        // Bottom row
-        for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) 
-            LEDlevel[i] = intensities[(NUM_COL - 1) - (i - LEDstartIndex[1])];
-        // Left side
-        for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) 
-            LEDlevel[i] = intensities[0];
-        // Top row, since it is a bit narrower we skip the outer values
-        for (ledInd_t i = LEDstartIndex[3]; i < NUM_LED; i++) 
-            LEDlevel[i] = intensities[(i + 1) - LEDstartIndex[3]];
-    }
+    ledlevel_t* targetBuf = nullptr;
+    if (gamma == true) targetBuf = LEDgamma;
+    else targetBuf = LEDlevel;
+
+    // Right side
+    for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) 
+        targetBuf[i] = intensities[NUM_COL - 1];
+    // Bottom row
+    for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) 
+        targetBuf[i] = intensities[(NUM_COL - 1) - (i - LEDstartIndex[1])];
+    // Left side
+    for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) 
+        targetBuf[i] = intensities[0];
+    // Top row, since it is a bit narrower we skip the outer values
+    for (ledInd_t i = LEDstartIndex[3]; i < NUM_LED; i++) 
+        targetBuf[i] = intensities[(i + 1) - LEDstartIndex[3]];
+
+
+    if (gamma == true) copyGammaIntoBuffer();
 }
 
 /**
