@@ -357,15 +357,13 @@ void breathingLED(unsigned long periodMS) {
  * \note Probably going to be pretty choppy if run slowly
  */
 void spinningLED(unsigned long periodMS, bool clockwise) {
-    const ledlevel_t backgroundIntensity = 10;
-    const int numBump = 2; // Number of light "bumps" going around
-    const ledInd_t spacing = NUM_LED / numBump;
-    ledlevel_t stages[] = {63, 55, 50, 45, 40, 35, 25, 20, backgroundIntensity}; 
+    const ledlevel_t BASE_INTENSITY = 10;
+    const int NUM_BUMPS = 2; // Number of light "bumps" going around
+    const ledInd_t SPACING = NUM_LED / NUM_BUMPS;
+    ledlevel_t STAGES[] = {63, 55, 50, 45, 40, 35, 25, 20, BASE_INTENSITY}; 
     // Gamma intensities of the bumps going around
-    const int numStages = sizeof(stages) / sizeof(stages[0]);
+    const int NUM_STAGES = sizeof(STAGES) / sizeof(STAGES[0]);
     // Need to include background to reset 
-
-    static ledInd_t location = 0;
 
     static unsigned long nextMark = 0;      // Marks next time to adjust brightness
     unsigned long currentTime = millis();
@@ -379,17 +377,17 @@ void spinningLED(unsigned long periodMS, bool clockwise) {
     bool restart = checkReset(nextMark, stepMS, currentTime);
     nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
-        uniformGamma(backgroundIntensity);
+        uniformGamma(BASE_INTENSITY);
 
         // Draw the bumps after reset (they will just be rotated)
-        for (int_fast8_t b = 0; b < numBump; b++) {
-            ledInd_t baseAddress = b * spacing;
+        for (int_fast8_t b = 0; b < NUM_BUMPS; b++) {
+            ledInd_t baseAddress = b * SPACING;
 
-            for (ledInd_t offset = 0; offset < numStages; offset++) {
+            for (ledInd_t offset = 0; offset < NUM_STAGES; offset++) {
                 ledInd_t ahead = constrainIndex(baseAddress + offset);
                 ledInd_t behind = constrainIndex(baseAddress - offset);
-                LEDgamma[ahead] = stages[offset];
-                LEDgamma[behind] = stages[offset];
+                LEDgamma[ahead] = STAGES[offset];
+                LEDgamma[behind] = STAGES[offset];
             }
         }
         return;
