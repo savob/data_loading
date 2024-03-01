@@ -18,6 +18,9 @@ IS31FL3236 drivers[] = {
 
 Cap1206 touch(&i2cBus);
 
+// Variables for audio processing
+double left[64], right[64], leftRMS, rightRMS;
+
 void setup() {
     // Start with LED and button initialization to show system is live before potentially waiting for Serial
     for (int i = 0; i < 2; i++) pinMode(button[i], INPUT_PULLUP);
@@ -59,13 +62,14 @@ void setup() {
 }
 
 void loop() {
+    static bool sampleAudio = true;
+
     uint8_t pads = 0;
     touch.readSensors(&pads);
 
-    double left[64], right[64], leftRMS, rightRMS;
-    readAudio(left, right, &leftRMS, &rightRMS);
+    if (sampleAudio) readAudio(left, right, &leftRMS, &rightRMS);
 
-    LEDfsm(pads, left, right, leftRMS, rightRMS); //, ledFSMstates::AUD_UNI, true);
+    sampleAudio = LEDfsm(pads, left, right, leftRMS, rightRMS); //, ledFSMstates::AUD_UNI, true);
 
     remapLED(drivers);
     drivers[0].updateDuties();

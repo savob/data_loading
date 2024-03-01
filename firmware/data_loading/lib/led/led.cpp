@@ -111,7 +111,7 @@ void rotateLED(ledInd_t amount, bool clockwise) {
  * \param overrideState What state to put the LEDs into if overridden
  * \param override Override state?
  */
-void LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double rRMS,
+bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double rRMS,
             ledFSMstates overrideState, bool override) {
     static ledFSMstates state = ledFSMstates::SOLID;
     static ledFSMstates prevState = ledFSMstates::SOLID;
@@ -126,60 +126,71 @@ void LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
     if (toggleUser) userControl = !userControl;
     if (toggleInvert) invertBrightness = !invertBrightness;
 
-    bool usedGamma = true; // Keeps track of if a state used gamma levels or not
+    bool usedGamma = true;      // Keeps track of if a state used gamma levels or not
+    bool sampleAudio = false;   // Keeps track of if audio sampling is needed (slows looping)
+
     if (override) state = overrideState;
     switch (state) {
     case ledFSMstates::BREATH:
         breathingLED(5000);
         usedGamma = true;
+        sampleAudio = false;
         if (returnState) state = ledFSMstates::SOLID;
         if (advanceState) state = ledFSMstates::SPINNING;
         break;
     case ledFSMstates::SPINNING:
         spinningLED(5000, userControl);
         usedGamma = true;
+        sampleAudio = false;
         if (returnState) state = ledFSMstates::BREATH;
         if (advanceState) state = ledFSMstates::WAVE_HORI;
         break;
     case ledFSMstates::WAVE_HORI:
         waveHorLED(3000, userControl);
         usedGamma = true;
+        sampleAudio = false;
         if (returnState) state = ledFSMstates::SPINNING;
         if (advanceState) state = ledFSMstates::WAVE_VERT;
         break;
     case ledFSMstates::WAVE_VERT:
         waveVerLED(3000, userControl);
         usedGamma = true;
+        sampleAudio = false;
         if (returnState) state = ledFSMstates::WAVE_HORI;
         if (advanceState) state = ledFSMstates::CLOUD;
         break;
     case ledFSMstates::CLOUD:
         cloudLED(10);
         usedGamma = true;
+        sampleAudio = false;
         if (returnState) state = ledFSMstates::WAVE_VERT;
         if (advanceState) state = ledFSMstates::TRACKING;
         break;
     case ledFSMstates::TRACKING:
         trackingLED(10, 500, 2, 3);
         usedGamma = true;
+        sampleAudio = false;
         if (returnState) state = ledFSMstates::CLOUD;
         if (advanceState) state = ledFSMstates::BUMPS;
         break;
     case ledFSMstates::BUMPS:
         bumpsLED(10);
         usedGamma = true;
+        sampleAudio = false;
         if (returnState) state = ledFSMstates::TRACKING;
         if (advanceState) state = ledFSMstates::AUD_UNI;
         break;
     case ledFSMstates::AUD_UNI:
         audioUniformLED(10, lRMS, rRMS);
         usedGamma = true;
+        sampleAudio = true;
         if (returnState) state = ledFSMstates::BUMPS;
         if (advanceState) state = ledFSMstates::AUD_BALANCE;
         break;
     case ledFSMstates::AUD_BALANCE:
         audioBalanceLED(10, lRMS, rRMS);
         usedGamma = true;
+        sampleAudio = true;
         if (returnState) state = ledFSMstates::AUD_UNI;
         if (advanceState) state = ledFSMstates::SOLID;
         break;
@@ -187,6 +198,7 @@ void LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
     default: // Solid is default case
         uniformLED(128, false);
         usedGamma = false;
+        sampleAudio = false;
         if (returnState) state = ledFSMstates::AUD_BALANCE;
         if (advanceState) state = ledFSMstates::BREATH;
         break;
@@ -208,6 +220,8 @@ void LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
             for (ledInd_t i = 0; i < NUM_LED; i++) LEDlevel[i] = 255 - LEDlevel[i];
         }
     }
+
+    return sampleAudio; // Let the main loop if we need audio samples
 }
 
 /**
