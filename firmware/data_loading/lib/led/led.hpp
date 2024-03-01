@@ -41,7 +41,7 @@ void initializeLED(IS31FL3236 drvrs[]);
 void remapLED(IS31FL3236 drvrs[]);
 void rotateLED(ledInd_t amount, bool clockwise = true);
 
-void LEDfsm(ledFSMstates state, uint8_t buttons);
+void LEDfsm(uint8_t buttons, ledFSMstates overrideState = ledFSMstates::SOLID, bool override = false);
 
 bool checkReset(unsigned long mark, unsigned long stepPeriod, unsigned long curTime);
 ledInd_t constrainIndex(ledInd_t ind, ledInd_t limit = NUM_LED);

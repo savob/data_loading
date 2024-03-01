@@ -106,45 +106,82 @@ void rotateLED(ledInd_t amount, bool clockwise) {
 /**
  * \brief Finite State Machine for the LEDs
  * 
- * \param state What state to put the LEDs into
  * \param buttons State of the buttons
+ * \param overrideState What state to put the LEDs into if overridden
+ * \param override Override state?
  */
-void LEDfsm(ledFSMstates state, uint8_t buttons) {
+void LEDfsm(uint8_t buttons, ledFSMstates overrideState, bool override) {
+    static ledFSMstates state = ledFSMstates::SOLID;
     static ledFSMstates prevState = ledFSMstates::SOLID;
+    static bool invertBrightness = false;
+    static bool userControl = false; // Used for user togglable setting
+
+    bool advanceState   = ((buttons & 0b0010) != 0);
+    bool returnState    = ((buttons & 0b0100) != 0);
+    bool toggleInvert   = ((buttons & 0b1000) != 0);
+    bool toggleUser     = ((buttons & 0b0001) != 0);
+
+    if (toggleUser) userControl = !userControl;
+    if (toggleInvert) invertBrightness = !invertBrightness;
 
     if (prevState != state) {
         // Do we want some sort of gradual shift between states?
     }
 
+    if (override) state = overrideState;
     switch (state) {
     case ledFSMstates::BREATH:
         breathingLED(5000);
+        if (returnState) state = ledFSMstates::SOLID;
+        if (advanceState) state = ledFSMstates::SPINNING;
         break;
     case ledFSMstates::SPINNING:
-        spinningLED(5000, true);
+        spinningLED(5000, userControl);
+        if (returnState) state = ledFSMstates::BREATH;
+        if (advanceState) state = ledFSMstates::WAVE_HORI;
         break;
     case ledFSMstates::WAVE_HORI:
-        waveHorLED(3000, false);
+        waveHorLED(3000, userControl);
+        if (returnState) state = ledFSMstates::SPINNING;
+        if (advanceState) state = ledFSMstates::WAVE_VERT;
         break;
     case ledFSMstates::WAVE_VERT:
-        waveVerLED(3000, false);
+        waveVerLED(3000, userControl);
+        if (returnState) state = ledFSMstates::WAVE_HORI;
+        if (advanceState) state = ledFSMstates::CLOUD;
         break;
     case ledFSMstates::CLOUD:
         cloudLED(10);
+        if (returnState) state = ledFSMstates::WAVE_VERT;
+        if (advanceState) state = ledFSMstates::TRACKING;
         break;
     case ledFSMstates::TRACKING:
         trackingLED(10, 500, 2, 3);
+        if (returnState) state = ledFSMstates::CLOUD;
+        if (advanceState) state = ledFSMstates::BUMPS;
         break;
     case ledFSMstates::BUMPS:
         bumpsLED(10);
+        if (returnState) state = ledFSMstates::TRACKING;
+        if (advanceState) state = ledFSMstates::SOLID;
         break;
     
     default: // Solid is default case
         uniformLED(128);
+        if (returnState) state = ledFSMstates::BUMPS;
+        if (advanceState) state = ledFSMstates::BREATH;
         break;
     }
 
     prevState = state;
+
+    // Handle inverting LED brightness as needed
+    // Need to improve handling for gamma correction
+    if (invertBrightness) {
+        for (ledInd_t i = 0; i < NUM_LED; i++) {
+            LEDlevel[i] = 255 - LEDlevel[i];
+        }
+    }
 }
 
 /**

@@ -207,6 +207,7 @@ int Cap1206::readSensors(bool target[]) {
  * \return Return status of the transfer 
  */
 int Cap1206::readSensors(uint8_t* target) {
+    static bool currentlyPressed = false;
 
     // Checks if an interrupt for input was raised
     bool interruptFound = false;
@@ -220,6 +221,12 @@ int Cap1206::readSensors(uint8_t* target) {
 
     if(readSingleReg(RegistersCap1206::SENSOR_INPUT, target) != CAP1206_TRANSFER_SUCCESS) 
         return CAP1206_TRANSFER_FAIL;
+
+    // Need to ignore release events
+    if (*target != 0) {
+        if (currentlyPressed) *target = 0;
+        currentlyPressed = !currentlyPressed;
+    }
 
     // Need to clear interrupt to reset button states for next check
     return clearInterrupt();
@@ -312,8 +319,8 @@ int Cap1206::setConfig2(bool bcOutRecal, bool powReduction, bool bcOutInt, bool 
     if (bcOutInt == true)           temp |= 0x10;
     if (showRFnoiseOnly == true)    temp |= 0x08;
     if (disRFnoise == true)         temp |= 0x04;
-    if (anaCalFailInt == true)     temp |= 0x02;
-    if (intRelease == true)         temp |= 0x01;
+    if (anaCalFailInt == true)      temp |= 0x02;
+    if (intRelease == false)        temp |= 0x01;
 
     return writeSingleReg(RegistersCap1206::CONFIG_1, temp);
 }
@@ -689,22 +696,36 @@ int Cap1206::initialize() {
 
     // The initial configuration is largely chip defaults
 
-    if (setMainControl(false, false, true) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
+    if (setMainControl(false,
+                       false, 
+                       true)
+                       == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     if (setSensitivity(DeltaSensitivityCap1206::MUL_032, 
                        BaseShiftCap1206::SACLE_256) 
                        == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
-    if (setConfig1(false, false, false, true) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
-    if (setConfig2(true, true, false, false, false, false, false) == CAP1206_TRANSFER_FAIL)
+    if (setConfig1(false, 
+                   false, 
+                   false, 
+                   true) 
+                   == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
+    if (setConfig2(true, 
+                   true, 
+                   false, 
+                   false, 
+                   false, 
+                   false, 
+                   false) 
+                   == CAP1206_TRANSFER_FAIL)
         return CAP1206_TRANSFER_FAIL;
     
     // Only enabling the tabs buttons (no 'DA' nor 'TA' due to sensitivity issues)
     if (enableSensors((uint8_t)(0x0F)) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
-    if (enableRepeat((uint8_t)(0x0F)) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
+    if (enableRepeat((uint8_t)(0x00)) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     
     if (setSensorInputConfig1(MaxDurationcap1206::MAX_DUR_05600, 
-                              RepeatRateCap1206::REP_RATE_175) 
+                              RepeatRateCap1206::REP_RATE_560) 
                               == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
-    if (setSensorInputConfig2(MinForRepeatCap1206::MIN_PER_420) == CAP1206_TRANSFER_FAIL) 
+    if (setSensorInputConfig2(MinForRepeatCap1206::MIN_PER_560) == CAP1206_TRANSFER_FAIL) 
         return CAP1206_TRANSFER_FAIL;
     if (setAverageAndSampling(AveragedSamplesCap1206::SMPL_008, 
                               SampleTimeCap1206::US_1280, 
@@ -725,7 +746,7 @@ int Cap1206::initialize() {
     if (setButtonThresholds(defaultThresholds) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     
     // Currently disabling multiple touch detection and blocking
-    if (setMultiTouchConfig(false, 4) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
+    if (setMultiTouchConfig(true, 1) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     
     return CAP1206_TRANSFER_SUCCESS;
 }
