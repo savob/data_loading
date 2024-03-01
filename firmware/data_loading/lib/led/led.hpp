@@ -32,10 +32,10 @@ enum ledFSMstates {
     TRACKING,       // Cloud but occasionally some columns get swapped temporarily
     SPINNING,       // Slowly rotating peaks
     AUD_UNI,        // Uniform brightness based on RMS of audio
+    AUD_BALANCE,    // Brightness left to right is interpolation of the respective RMSs
     AUD_HORI,       // Horizontal spectrum graph
     AUD_SPLIT,      // Split spectrum graph left/right
-    AUD_SPLIT_SPIN, // Split spectrum graph left/right, but continuously rotating
-    AUD_TRACKING    // Brightness left to right is interpolation of the respective RMSs
+    AUD_SPLIT_SPIN  // Split spectrum graph left/right, but continuously rotating
 };
 
 void initializeLED(IS31FL3236 drvrs[]);
@@ -60,4 +60,5 @@ void cloudLED(unsigned long stepMS);
 void trackingLED(unsigned long stepMS, unsigned long swapDurMS = 500, unsigned int widthSwap = 3, uint8_t probOfSwap = 3);
 void bumpsLED(unsigned long stepMS, uint8_t probOfStart = 3);
 void audioUniformLED(unsigned long stepMS, double leftRMS, double rightRMS);
+void audioBalanceLED(unsigned long stepMS, double leftRMS, double rightRMS);
 #endif

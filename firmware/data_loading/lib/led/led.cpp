@@ -175,13 +175,19 @@ void LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
         audioUniformLED(10, lRMS, rRMS);
         usedGamma = true;
         if (returnState) state = ledFSMstates::BUMPS;
+        if (advanceState) state = ledFSMstates::AUD_BALANCE;
+        break;
+    case ledFSMstates::AUD_BALANCE:
+        audioBalanceLED(10, lRMS, rRMS);
+        usedGamma = true;
+        if (returnState) state = ledFSMstates::AUD_UNI;
         if (advanceState) state = ledFSMstates::SOLID;
         break;
     
     default: // Solid is default case
         uniformLED(128, false);
         usedGamma = false;
-        if (returnState) state = ledFSMstates::AUD_UNI;
+        if (returnState) state = ledFSMstates::AUD_BALANCE;
         if (advanceState) state = ledFSMstates::BREATH;
         break;
     }
@@ -319,7 +325,10 @@ void paintColumns(ledlevel_t intensities[], bool gamma) {
  * 
  */
 void copyGammaIntoBuffer() {
-    for (ledInd_t i = 0; i < NUM_LED; i++) LEDlevel[i] = PWM_GAMMA[LEDgamma[i]];
+    for (ledInd_t i = 0; i < NUM_LED; i++) {
+        if (LEDgamma[i] >= NUM_GAMMA) LEDgamma[i] = NUM_GAMMA - 1;
+        LEDlevel[i] = PWM_GAMMA[LEDgamma[i]];
+    }
 }
 
 /**
@@ -896,8 +905,7 @@ void audioUniformLED(unsigned long stepMS, double leftRMS, double rightRMS) {
     // Check if it is time to adjust effects or not
     if (nextMark > currentTime) return;
     nextMark = currentTime + stepMS;
-
-    // There's no need to handle resets since this is a momentary effect
+    // There's no need to handle resets since this is a instantanious effect
 
     // Determine overall RMS, clamp it to 1 at max
     double overall = leftRMS * leftRMS + rightRMS * rightRMS;
@@ -907,4 +915,51 @@ void audioUniformLED(unsigned long stepMS, double leftRMS, double rightRMS) {
     ledlevel_t level = overall * NUM_GAMMA;
 
     uniformLED(level, true);
+}
+
+/**
+ * \brief Tracks the audio balancing left to right
+ * 
+ * \param stepMS Time between updates
+ * \param leftRMS RMS of left audio channel (should be between 0 and 1)
+ * \param rightRMS RMS of right audio channel (should be between 0 and 1)
+ * 
+ * \note Need to work on this, it isn't too nice or notable right now.
+ * \note Hence why there are all the `Serial.print()`s left in.
+ */
+void audioBalanceLED(unsigned long stepMS, double leftRMS, double rightRMS) {
+    const double SCALING = 4.0;
+
+    // Scale and clamp intensities
+    leftRMS = leftRMS * SCALING;
+    rightRMS = rightRMS * SCALING;
+
+    // Serial.print(leftRMS, 3);
+    // Serial.print(" ");
+    // Serial.print(rightRMS, 3);
+    // Serial.print(" | ");
+
+    static unsigned long nextMark = 0;      // Marks next time to adjust brightness
+    unsigned long currentTime = millis();
+
+    // Check if it is time to adjust effects or not
+    if (nextMark > currentTime) return;
+    nextMark = currentTime + stepMS;
+    // There's no need to handle resets since this is a instantanious effect
+
+    // Perform level rule to interpolate values between edges
+    ledlevel_t colMag[NUM_COL];
+    const float GRADIENT = (rightRMS - leftRMS) / (float)(NUM_COL - 1);
+    for (int i = 0; i < NUM_COL; i++) {
+        float temp;
+        temp = (GRADIENT * i) + leftRMS;
+
+        if (temp >= 1.0) temp = 0.999; // Clamp
+
+        colMag[i] = temp * NUM_GAMMA;
+        // Serial.print(colMag[i], 5);
+        // Serial.print("\t");
+    }
+    // Serial.println("");
+    paintColumns(colMag, true);
 }
