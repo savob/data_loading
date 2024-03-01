@@ -932,7 +932,7 @@ void bumpsLED(unsigned long stepMS, uint8_t probOfStart) {
  * \note Although this doesn't truely need to be paced, it's included to pace updates to lighting chips
  */
 void audioUniformLED(unsigned long stepMS, double leftRMS, double rightRMS) {
-    const double SCALING = 3.0;
+    const double SCALING = 7.0;
 
     static unsigned long nextMark = 0;      // Marks next time to adjust brightness
     unsigned long currentTime = millis();
@@ -963,7 +963,7 @@ void audioUniformLED(unsigned long stepMS, double leftRMS, double rightRMS) {
  * \note Hence why there are all the `Serial.print()`s left in.
  */
 void audioBalanceLED(unsigned long stepMS, double leftRMS, double rightRMS) {
-    const double SCALING = 4.0;
+    const double SCALING = 7.0;
 
     // Scale and clamp intensities
     leftRMS = leftRMS * SCALING;
