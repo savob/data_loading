@@ -13,6 +13,10 @@ LED brightness is stored in an array going clockwise from the top LED
 on the right side of the logo. There are some constant to mark out 
 key locations, following the same clockwise from right top scheme.
 */
+extern const ledInd_t NUM_LED; // Number of LEDs lining the board
+extern const ledInd_t NUM_ROW; // Number of rows the LEDs form
+extern const ledInd_t NUM_COL; // Number of columns the LEDs form
+
 extern ledlevel_t LEDlevel[];
 extern ledInd_t LEDstartIndex[];
 extern ledInd_t LEDmiddleIndex[];
@@ -34,22 +38,23 @@ enum ledFSMstates {
 };
 
 void initializeLED(IS31FL3236 drvrs[]);
-void remap(IS31FL3236 drvrs[]);
+void remapLED(IS31FL3236 drvrs[]);
+void rotateLED(ledInd_t amount, bool clockwise = true);
 
 void LEDfsm(ledFSMstates state, uint8_t buttons);
 
 bool checkReset(unsigned long mark, unsigned long stepPeriod, unsigned long curTime);
-ledInd_t constrainIndex(ledInd_t ind, ledInd_t limit);
-void paintColumns(ledlevel_t intensities[], bool gamma);
-void paintRows(ledlevel_t intensities[], bool gamma);
+ledInd_t constrainIndex(ledInd_t ind, ledInd_t limit = NUM_LED);
+void paintColumns(ledlevel_t intensities[], bool gamma = false);
+void paintRows(ledlevel_t intensities[], bool gamma = false);
 void copyGammaIntoBuffer();
 void uniformGamma(ledlevel_t gamma);
 
 void breathingLED(unsigned long periodMS);
 void uniformLED(ledlevel_t intensity);
-void spinningLED(unsigned long periodMS, bool clockwise);
-void waveVerLED(unsigned long periodMS, bool upwards);
-void waveHorLED(unsigned long periodMS, bool rightwards);
+void spinningLED(unsigned long periodMS, bool clockwise = true);
+void waveVerLED(unsigned long periodMS, bool upwards = true);
+void waveHorLED(unsigned long periodMS, bool rightwards = true);
 void cloudLED(unsigned long stepMS);
-void trackingLED(unsigned long stepMS, unsigned long swapDurMS, unsigned int widthSwap, uint8_t probOfSwap);
+void trackingLED(unsigned long stepMS, unsigned long swapDurMS = 500, unsigned int widthSwap = 3, uint8_t probOfSwap = 3);
 #endif

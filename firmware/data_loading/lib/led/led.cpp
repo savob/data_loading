@@ -60,7 +60,7 @@ void initializeLED(IS31FL3236 drvrs[]) {
  * 
  * \warning This must be called so LED effects can be seen properly
  */
-void remap(IS31FL3236 drvrs[]) {
+void remapLED(IS31FL3236 drvrs[]) {
     for (uint_fast8_t i = 0; i < 6; i++) {
         drvrs[0].duty[30 + i] = LEDlevel[i];
     }
@@ -69,6 +69,37 @@ void remap(IS31FL3236 drvrs[]) {
     }
     for (uint_fast8_t i = 42; i < 72; i++) {
         drvrs[0].duty[i - 42] = LEDlevel[i];
+    }
+}
+
+/**
+ * \brief Rotates the LED brightness buffers
+ * 
+ * \param amount Number of places to rotate LEDs by
+ * \param clockwise Direction of rotation to take
+ */
+void rotateLED(ledInd_t amount, bool clockwise) {
+    amount = constrainIndex(amount); // Limits rotation to under one rotation
+    if (amount == 0) return; // Return if no rotation is needed
+
+    ledlevel_t tempLevel[NUM_LED] = {0};
+    ledlevel_t tempGamma[NUM_LED] = {0};
+    for (ledInd_t i = 0; i < NUM_LED; i++) {
+        tempLevel[i] = LEDlevel[i];
+        tempGamma[i] = LEDgamma[i];
+    }
+
+    if (clockwise) {
+        for (ledInd_t i = 0; i < NUM_LED; i++) {
+            LEDlevel[i] = tempLevel[constrainIndex(i - amount)];
+            LEDgamma[i] = tempGamma[constrainIndex(i - amount)];
+        }
+    }
+    else {
+        for (ledInd_t i = 0; i < NUM_LED; i++) {
+            LEDlevel[i] = tempLevel[constrainIndex(i + amount)];
+            LEDgamma[i] = tempGamma[constrainIndex(i + amount)];
+        }
     }
 }
 
@@ -154,7 +185,7 @@ bool checkReset(unsigned long mark, unsigned long stepPeriod, unsigned long curT
  * 
  * \return Index in the valid range
  */
-ledInd_t constrainIndex(ledInd_t ind, ledInd_t limit = NUM_LED) {
+ledInd_t constrainIndex(ledInd_t ind, ledInd_t limit) {
     if ((ind >= 0) && (ind < limit)) return ind; // Valid
 
     while (ind < 0) ind = ind + limit; // Brings index into positives
@@ -172,7 +203,7 @@ ledInd_t constrainIndex(ledInd_t ind, ledInd_t limit = NUM_LED) {
  * 
  * \note Bottom row is row 0
  */
-void paintRows(ledlevel_t intensities[], bool gamma = false) {
+void paintRows(ledlevel_t intensities[], bool gamma) {
     if (gamma == true) {
         // Right side
         for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) 
@@ -211,7 +242,7 @@ void paintRows(ledlevel_t intensities[], bool gamma = false) {
  * 
  * \note Left column is column 0
  */
-void paintColumns(ledlevel_t intensities[], bool gamma = false) {
+void paintColumns(ledlevel_t intensities[], bool gamma) {
     if (gamma == true) {
         // Right side
         for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) 
@@ -325,7 +356,7 @@ void breathingLED(unsigned long periodMS) {
  * \param clockwise Direction of rotation, true for clockwise
  * \note Probably going to be pretty choppy if run slowly
  */
-void spinningLED(unsigned long periodMS, bool clockwise = true) {
+void spinningLED(unsigned long periodMS, bool clockwise) {
     const ledlevel_t backgroundIntensity = 10;
     const int numBump = 2; // Number of light "bumps" going around
     const ledInd_t spacing = NUM_LED / numBump;
@@ -349,24 +380,23 @@ void spinningLED(unsigned long periodMS, bool clockwise = true) {
     nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
         uniformGamma(backgroundIntensity);
+
+        // Draw the bumps after reset (they will just be rotated)
+        for (int_fast8_t b = 0; b < numBump; b++) {
+            ledInd_t baseAddress = b * spacing;
+
+            for (ledInd_t offset = 0; offset < numStages; offset++) {
+                ledInd_t ahead = constrainIndex(baseAddress + offset);
+                ledInd_t behind = constrainIndex(baseAddress - offset);
+                LEDgamma[ahead] = stages[offset];
+                LEDgamma[behind] = stages[offset];
+            }
+        }
         return;
     }
 
-    // Actually enact breathing effect
-    if (clockwise) location = constrainIndex(location + 1);
-    else location = constrainIndex(location - 1);
-
-    for (int_fast8_t b = 0; b < numBump; b++) {
-        ledInd_t baseAddress = location + (b * spacing);
-
-        for (ledInd_t offset = 0; offset < numStages; offset++) {
-            ledInd_t ahead = constrainIndex(baseAddress + offset);
-            ledInd_t behind = constrainIndex(baseAddress - offset);
-            LEDgamma[ahead] = stages[offset];
-            LEDgamma[behind] = stages[offset];
-        }
-    }
-
+    // Enact rotation
+    rotateLED(1, clockwise);
     copyGammaIntoBuffer();
 }
 
@@ -376,7 +406,7 @@ void spinningLED(unsigned long periodMS, bool clockwise = true) {
  * \param periodMS Period for wave from end to end in milliseconds
  * \param upwards Should the wave move upwards or not
  */
-void waveVerLED(unsigned long periodMS, bool upwards = true) {
+void waveVerLED(unsigned long periodMS, bool upwards) {
     const ledlevel_t END_INTENSITY = 60;
     const ledlevel_t START_INTENSITY = 10;
     const int INTENSITY_INCR = (START_INTENSITY < END_INTENSITY) ? 1 : -1;
@@ -447,7 +477,7 @@ void waveVerLED(unsigned long periodMS, bool upwards = true) {
  * \param periodMS Period for wave from end to end in milliseconds
  * \param rightwards Should the wave scroll rightwards or not
  */
-void waveHorLED(unsigned long periodMS, bool rightwards = true) {
+void waveHorLED(unsigned long periodMS, bool rightwards) {
     const ledlevel_t END_INTENSITY = 63;
     const ledlevel_t START_INTENSITY = 10;
     const int INTENSITY_INCR = (START_INTENSITY < END_INTENSITY) ? 1 : -1;
@@ -579,8 +609,8 @@ void cloudLED(unsigned long stepMS) {
  * 
  * \note Idle effect is that of cloud but done in columns for visible swapping
  */
-void trackingLED(unsigned long stepMS, unsigned long swapDurMS = 500,
-                 unsigned int widthSwap = 3, uint8_t probOfSwap = 3) {
+void trackingLED(unsigned long stepMS, unsigned long swapDurMS,
+                 unsigned int widthSwap, uint8_t probOfSwap) {
     const ledlevel_t MAX_INTENSITY = 60;
     const ledlevel_t MIN_INTENSITY = 10;
     const ledlevel_t INCREMENT = 3;

@@ -57,7 +57,7 @@ void setup() {
 void loop() {
     uint8_t pads = 0;
     touch.readSensors(&pads);
-    LEDfsm(ledFSMstates::TRACKING, pads);
+    LEDfsm(ledFSMstates::SPINNING, pads);
 
     // double left[64], right[64], leftRMS, rightRMS;
     // readAudio(left, right, &leftRMS, &rightRMS);
@@ -65,7 +65,7 @@ void loop() {
     // Currently just throw up the spectrum for the left channel on most of the LEDs
     // for (int i = 0; i < 64; i++) LEDlevel[i] = left[i] * 255.0;
 
-    remap(drivers);
+    remapLED(drivers);
     drivers[0].updateDuties();
     drivers[1].updateDuties();
 
