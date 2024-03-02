@@ -62,7 +62,7 @@ void setup() {
 }
 
 void loop() {
-    static bool sampleAudio = true;
+    static bool sampleAudio = true; // Initialize as true so audio has data if its the default state
 
     uint8_t pads = 0;
     touch.readSensors(&pads);
