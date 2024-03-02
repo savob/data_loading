@@ -1202,17 +1202,11 @@ void audioVertVolLED(unsigned long stepMS, double leftRMS, double rightRMS, bool
         rows[i] = PEAK_INTENSITY;
     }
     rows[fullRow] = (PEAK_INTENSITY - BASE_INTENSITY) * partialRow;
-    // Reverse if needed
-    if (bottomToTop == false) {
-        ledlevel_t temp[NUM_ROW];
-        for (int i = 0; i < NUM_ROW; i++) temp[i] = rows[NUM_ROW - (1 + i)];
-        for (int i = 0; i < NUM_ROW; i++) rows[i] = temp[i];
-    }
 
     // Upper mark, falls at a set rate
     const unsigned int FALLDOWN_PERIOD = 200;
     static unsigned long nextPeakMark = 0;
-    static ledInd_t peakLocation = 0;
+    static ledInd_t peakLocation = NUM_ROW -1;
 
     if (nextPeakMark < currentTime) {
         nextPeakMark = currentTime + FALLDOWN_PERIOD;
@@ -1221,6 +1215,13 @@ void audioVertVolLED(unsigned long stepMS, double leftRMS, double rightRMS, bool
     }
     if (fullRow >= peakLocation) peakLocation = fullRow + 1;
     rows[peakLocation] = PEAK_INTENSITY;
+
+    // Reverse if needed
+    if (bottomToTop == false) {
+        ledlevel_t temp[NUM_ROW];
+        for (int i = 0; i < NUM_ROW; i++) temp[i] = rows[NUM_ROW - (1 + i)];
+        for (int i = 0; i < NUM_ROW; i++) rows[i] = temp[i];
+    }
 
     paintRows(rows, true);
 }
@@ -1265,17 +1266,11 @@ void audioHoriVolLED(unsigned long stepMS, double leftRMS, double rightRMS, bool
         cols[i] = PEAK_INTENSITY;
     }
     cols[fullCol] = (PEAK_INTENSITY - BASE_INTENSITY) * partialCol;
-    // Reverse if needed
-    if (leftToRight == false) {
-        ledlevel_t temp[NUM_COL];
-        for (int i = 0; i < NUM_COL; i++) temp[i] = cols[NUM_COL - (1 + i)];
-        for (int i = 0; i < NUM_COL; i++) cols[i] = temp[i];
-    }
 
     // Upper mark, falls at a set rate
     const unsigned int FALLDOWN_PERIOD = 50;
     static unsigned long nextPeakMark = 0;
-    static ledInd_t peakLocation = 0;
+    static ledInd_t peakLocation = NUM_COL - 1;
 
     if (nextPeakMark < currentTime) {
         nextPeakMark = currentTime + FALLDOWN_PERIOD;
@@ -1284,6 +1279,13 @@ void audioHoriVolLED(unsigned long stepMS, double leftRMS, double rightRMS, bool
     }
     if (fullCol >= peakLocation) peakLocation = fullCol + 1;
     cols[peakLocation] = PEAK_INTENSITY;
+
+    // Reverse if needed
+    if (leftToRight == false) {
+        ledlevel_t temp[NUM_COL];
+        for (int i = 0; i < NUM_COL; i++) temp[i] = cols[NUM_COL - (1 + i)];
+        for (int i = 0; i < NUM_COL; i++) cols[i] = temp[i];
+    }
 
     paintColumns(cols, true);
 }
