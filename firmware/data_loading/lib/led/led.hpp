@@ -71,4 +71,5 @@ void audioSplitSpectrumLED(unsigned long stepMS, double left[], double right[], 
 void audioSplitSpectrumSpinLED(unsigned long stepMS, double left[], double right[], bool clockwise = true);
 void audioVertVolLED(unsigned long stepMS, double leftRMS, double rightRMS, bool bottomToTop = true);
 void audioHoriVolLED(unsigned long stepMS, double leftRMS, double rightRMS, bool leftToRight = true);
+void audioHoriSplitVolLED(unsigned long stepMS, double leftRMS, double rightRMS);
 #endif
