@@ -220,6 +220,13 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
         usedGamma = true;
         sampleAudio = true;
         if (returnState) state = ledFSMstates::AUD_SPLIT_SPIN;
+        if (advanceState) state = ledFSMstates::AUD_HORI_VOL;
+        break;
+    case ledFSMstates::AUD_HORI_VOL:
+        audioHoriVolLED(20, lRMS, rRMS, userControl);
+        usedGamma = true;
+        sampleAudio = true;
+        if (returnState) state = ledFSMstates::AUD_VERT_VOL;
         if (advanceState) state = ledFSMstates::SOLID;
         break;
     
@@ -227,7 +234,7 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
         uniformLED(128, false);
         usedGamma = false;
         sampleAudio = false;
-        if (returnState) state = ledFSMstates::AUD_VERT_VOL;
+        if (returnState) state = ledFSMstates::AUD_HORI_VOL;
         if (advanceState) state = ledFSMstates::BREATH;
         break;
     }
@@ -1203,12 +1210,12 @@ void audioVertVolLED(unsigned long stepMS, double leftRMS, double rightRMS, bool
     }
 
     // Upper mark, falls at a set rate
-    const unsigned int FALLDOWN_PERIOD = 300;
-    static unsigned long naxtPeakMark = 0;
+    const unsigned int FALLDOWN_PERIOD = 200;
+    static unsigned long nextPeakMark = 0;
     static ledInd_t peakLocation = 0;
 
-    if (naxtPeakMark > currentTime) {
-        naxtPeakMark = currentTime + FALLDOWN_PERIOD;
+    if (nextPeakMark < currentTime) {
+        nextPeakMark = currentTime + FALLDOWN_PERIOD;
 
         if (peakLocation > 0) peakLocation--;
     }
@@ -1216,4 +1223,67 @@ void audioVertVolLED(unsigned long stepMS, double leftRMS, double rightRMS, bool
     rows[peakLocation] = PEAK_INTENSITY;
 
     paintRows(rows, true);
+}
+
+/**
+ * \brief Horizontal volume bar effect
+ * 
+ * \param stepMS Time between updates
+ * \param leftRMS RMS of left audio channel (should be between 0 and 1)
+ * \param rightRMS RMS of right audio channel (should be between 0 and 1)
+ * \param leftToRight Should the bar go from the left (true) or right?
+ */
+void audioHoriVolLED(unsigned long stepMS, double leftRMS, double rightRMS, bool leftToRight) {
+    const double SCALING = 8.0;
+    const ledlevel_t PEAK_INTENSITY = 63;
+    const ledlevel_t BASE_INTENSITY = 10;
+
+    static unsigned long nextMark = 0;      // Marks next time to adjust brightness
+    unsigned long currentTime = millis();
+
+    // Check if it is time to adjust effects or not
+    if (nextMark > currentTime) return;
+    nextMark = currentTime + stepMS;
+    // There's no need to handle resets since this is a instantanious effect
+
+    // Calculate overall RMS
+    double overallRMS = 0;
+    overallRMS = leftRMS * leftRMS + rightRMS * rightRMS;
+    overallRMS = sqrt(overallRMS / 2.0);
+    if (overallRMS > 1.0) overallRMS = 1.0;
+
+    // Calculate vertical volume
+    double partialCol = overallRMS * NUM_COL * SCALING;
+    if (partialCol > NUM_COL) partialCol = NUM_COL;
+    ledInd_t fullCol = partialCol;
+    partialCol = partialCol - fullCol; // Get remainder
+
+    // Order into columns
+    ledlevel_t cols[NUM_COL];
+    for (ledInd_t i = 0; i < NUM_COL; i++) cols[i] = BASE_INTENSITY;
+    for (ledInd_t i = 0; i < fullCol; i++) {
+        cols[i] = PEAK_INTENSITY;
+    }
+    cols[fullCol] = (PEAK_INTENSITY - BASE_INTENSITY) * partialCol;
+    // Reverse if needed
+    if (leftToRight == false) {
+        ledlevel_t temp[NUM_COL];
+        for (int i = 0; i < NUM_COL; i++) temp[i] = cols[NUM_COL - (1 + i)];
+        for (int i = 0; i < NUM_COL; i++) cols[i] = temp[i];
+    }
+
+    // Upper mark, falls at a set rate
+    const unsigned int FALLDOWN_PERIOD = 50;
+    static unsigned long nextPeakMark = 0;
+    static ledInd_t peakLocation = 0;
+
+    if (nextPeakMark < currentTime) {
+        nextPeakMark = currentTime + FALLDOWN_PERIOD;
+
+        if (peakLocation > 0) peakLocation--;
+    }
+    if (fullCol >= peakLocation) peakLocation = fullCol + 1;
+    cols[peakLocation] = PEAK_INTENSITY;
+
+    paintColumns(cols, true);
 }
