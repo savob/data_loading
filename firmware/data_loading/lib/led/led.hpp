@@ -23,19 +23,22 @@ extern ledInd_t LEDmiddleIndex[];
 extern ledInd_t LEDbutton[];
 
 enum ledFSMstates {
-    SOLID = 0,      // Uniform and steady glow
-    BREATH,         // Uniform breathing effect
-    WAVE_VERT,      // Pulse travelling vertically
-    WAVE_HORI,      // Pulse travelling horizontally
-    CLOUD,          // Slow gradual changes dispersed randomly along edge
-    BUMPS,          // A few bumps that move along the edges randomly
-    TRACKING,       // Cloud but occasionally some columns get swapped temporarily
-    SPINNING,       // Slowly rotating peaks
-    AUD_UNI,        // Uniform brightness based on RMS of audio
-    AUD_BALANCE,    // Brightness left to right is interpolation of the respective RMSs
-    AUD_HORI,       // Horizontal spectrum graph
-    AUD_SPLIT,      // Split spectrum graph left/right
-    AUD_SPLIT_SPIN  // Split spectrum graph left/right, but continuously rotating
+    SOLID = 0,          // Uniform and steady glow
+    BREATH,             // Uniform breathing effect
+    WAVE_VERT,          // Pulse travelling vertically
+    WAVE_HORI,          // Pulse travelling horizontally
+    CLOUD,              // Slow gradual changes dispersed randomly along edge
+    BUMPS,              // A few bumps that move along the edges randomly
+    TRACKING,           // Cloud but occasionally some columns get swapped temporarily
+    SPINNING,           // Slowly rotating peaks
+    AUD_UNI,            // Uniform brightness based on RMS of audio
+    AUD_BALANCE,        // Brightness left to right is interpolation of the respective RMSs
+    AUD_HORI_SPECTRUM,  // Horizontal spectrum graph
+    AUD_SPLIT,          // Split spectrum graph left/right
+    AUD_SPLIT_SPIN,     // Split spectrum graph left/right, but continuously rotating
+    AUD_HORI_VOL,       // Horizontal volume effect
+    AUD_HORI_SPLIT_VOL, // Split volume as horizontal effect
+    AUD_VERT_VOL        // Vertical volume effect
 };
 
 void initializeLED(IS31FL3236 drvrs[]);
@@ -66,4 +69,5 @@ void filterSpectrum(double lIn[], double rIn[], double lOut[], double rOut[]);
 void audioHoriSpectrumLED(unsigned long stepMS, double left[], double right[], bool leftToRight = true);
 void audioSplitSpectrumLED(unsigned long stepMS, double left[], double right[], bool bottomToTop = true);
 void audioSplitSpectrumSpinLED(unsigned long stepMS, double left[], double right[], bool clockwise = true);
+void audioVertVolLED(unsigned long stepMS, double leftRMS, double rightRMS, bool bottomToTop = true);
 #endif

@@ -192,9 +192,9 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
         usedGamma = true;
         sampleAudio = true;
         if (returnState) state = ledFSMstates::AUD_UNI;
-        if (advanceState) state = ledFSMstates::AUD_HORI;
+        if (advanceState) state = ledFSMstates::AUD_HORI_SPECTRUM;
         break;
-    case ledFSMstates::AUD_HORI:
+    case ledFSMstates::AUD_HORI_SPECTRUM:
         audioHoriSpectrumLED(10, lMag, rMag, userControl);
         usedGamma = true;
         sampleAudio = true;
@@ -205,7 +205,7 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
         audioSplitSpectrumLED(10, lMag, rMag, userControl);
         usedGamma = true;
         sampleAudio = true;
-        if (returnState) state = ledFSMstates::AUD_HORI;
+        if (returnState) state = ledFSMstates::AUD_HORI_SPECTRUM;
         if (advanceState) state = ledFSMstates::AUD_SPLIT_SPIN;
         break;
     case ledFSMstates::AUD_SPLIT_SPIN:
@@ -213,6 +213,13 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
         usedGamma = true;
         sampleAudio = true;
         if (returnState) state = ledFSMstates::AUD_SPLIT;
+        if (advanceState) state = ledFSMstates::AUD_VERT_VOL;
+        break;
+    case ledFSMstates::AUD_VERT_VOL:
+        audioVertVolLED(20, lRMS, rRMS, userControl);
+        usedGamma = true;
+        sampleAudio = true;
+        if (returnState) state = ledFSMstates::AUD_SPLIT_SPIN;
         if (advanceState) state = ledFSMstates::SOLID;
         break;
     
@@ -220,7 +227,7 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
         uniformLED(128, false);
         usedGamma = false;
         sampleAudio = false;
-        if (returnState) state = ledFSMstates::AUD_SPLIT_SPIN;
+        if (returnState) state = ledFSMstates::AUD_VERT_VOL;
         if (advanceState) state = ledFSMstates::BREATH;
         break;
     }
@@ -1146,4 +1153,67 @@ void audioSplitSpectrumSpinLED(unsigned long stepMS, double left[], double right
     if (clockwise) rotation++;
     else rotation--;
     rotation = constrainIndex(rotation);
+}
+
+/**
+ * \brief Vertical volume bar efect
+ * 
+ * \param stepMS Time between updates
+ * \param leftRMS RMS of left audio channel (should be between 0 and 1)
+ * \param rightRMS RMS of right audio channel (should be between 0 and 1)
+ * \param bottomToTop Paint volume from bottom (true) or top
+ */
+void audioVertVolLED(unsigned long stepMS, double leftRMS, double rightRMS, bool bottomToTop) {
+    const double SCALING = 8.0;
+    const ledlevel_t PEAK_INTENSITY = 63;
+    const ledlevel_t BASE_INTENSITY = 10;
+
+    static unsigned long nextMark = 0;      // Marks next time to adjust brightness
+    unsigned long currentTime = millis();
+
+    // Check if it is time to adjust effects or not
+    if (nextMark > currentTime) return;
+    nextMark = currentTime + stepMS;
+    // There's no need to handle resets since this is a instantanious effect
+
+    // Calculate overall RMS
+    double overallRMS = 0;
+    overallRMS = leftRMS * leftRMS + rightRMS * rightRMS;
+    overallRMS = sqrt(overallRMS / 2.0);
+    if (overallRMS > 1.0) overallRMS = 1.0;
+
+    // Calculate vertical volume
+    double partialRow = overallRMS * NUM_ROW * SCALING;
+    if (partialRow > NUM_ROW) partialRow = NUM_ROW;
+    ledInd_t fullRow = partialRow;
+    partialRow = partialRow - fullRow; // Get remainder
+
+    // Order into columns
+    ledlevel_t rows[NUM_ROW];
+    for (ledInd_t i = 0; i < NUM_ROW; i++) rows[i] = BASE_INTENSITY;
+    for (ledInd_t i = 0; i < fullRow; i++) {
+        rows[i] = PEAK_INTENSITY;
+    }
+    rows[fullRow] = (PEAK_INTENSITY - BASE_INTENSITY) * partialRow;
+    // Reverse if needed
+    if (bottomToTop == false) {
+        ledlevel_t temp[NUM_ROW];
+        for (int i = 0; i < NUM_ROW; i++) temp[i] = rows[NUM_ROW - (1 + i)];
+        for (int i = 0; i < NUM_ROW; i++) rows[i] = temp[i];
+    }
+
+    // Upper mark, falls at a set rate
+    const unsigned int FALLDOWN_PERIOD = 300;
+    static unsigned long naxtPeakMark = 0;
+    static ledInd_t peakLocation = 0;
+
+    if (naxtPeakMark > currentTime) {
+        naxtPeakMark = currentTime + FALLDOWN_PERIOD;
+
+        if (peakLocation > 0) peakLocation--;
+    }
+    if (fullRow >= peakLocation) peakLocation = fullRow + 1;
+    rows[peakLocation] = PEAK_INTENSITY;
+
+    paintRows(rows, true);
 }
