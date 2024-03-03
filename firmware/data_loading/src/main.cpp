@@ -36,29 +36,27 @@ void setup() {
 
     if (setupAudio() == 0) Serial.println("AUDIO INPUT CONFIGURED SUCCESSFULLY");
     else Serial.println("AUDIO INPUT CONFIGURE ERROR");
-    delay(100);
+    delay(10);
 
     initializeLED(drivers);
-    int test[] = {IS31_TRANSFER_SUCCESS, IS31_TRANSFER_SUCCESS};
-    test[0] = drivers[0].initialize();
-    delay(100);
-    test[1] = drivers[1].initialize();
-    if ((test[0] == IS31_TRANSFER_SUCCESS) && (test[1] == IS31_TRANSFER_SUCCESS)) {
-        Serial.println("LED DRIVERS CONFIGURED SUCCESSFULLY");
+    for (int i = 0; i < 2; i++) {
+        drivers[0].initialize();
+        drivers[1].initialize();
+        Serial.print("LED DRIVER ");
+        Serial.print(i);
+        if (drivers[1].initialize() == IS31_TRANSFER_SUCCESS) Serial.println(" CONFIGURED SUCCESSFULLY");
+        else Serial.println(" CONFIGURE ERROR");
+        delay(10);
     }
-    else Serial.println("LED DRIVER CONFIGURE ERROR");
-    delay(100);
     
     bool touchSuccess = touch.initialize() == CAP1206_TRANSFER_SUCCESS;
     if (touchSuccess) Serial.println("TOUCH SENSOR CONFIGURED SUCCESSFULLY");
     else Serial.println("TOUCH SENSOR CONFIGURE ERROR");
-    delay(100);
+    delay(10);
 
-    Serial.println("LAUNCHING!\n");
-    // delay(2000);
-    for (int i = 0; i < 3; i++) {
-        digitalWrite(statusLED[i], LOW);
-    }
+    Serial.println("\nLAUNCHING!\n");
+    delay(500);
+    for (int i = 0; i < 3; i++) digitalWrite(statusLED[i], LOW);
 }
 
 void loop() {
