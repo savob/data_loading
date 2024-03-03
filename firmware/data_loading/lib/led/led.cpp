@@ -514,6 +514,7 @@ void waveVerLED(unsigned long periodMS, bool upwards) {
     const int INTENSITY_INCR = (START_INTENSITY < END_INTENSITY) ? 1 : -1;
     const ledlevel_t PROPAGATE_LVL = 30; // Level to start next row
 
+    static bool lastUpwards = false;
     static ledInd_t location = 0; // Location of leading row in effect
     static ledlevel_t rowLevels[NUM_ROW] = { 0 };
     static bool rowGrowing[NUM_ROW] = { false }; // Marks if a row's brightness is climbing or not
@@ -535,8 +536,33 @@ void waveVerLED(unsigned long periodMS, bool upwards) {
 
         if (upwards) location = NUM_ROW - 1;
         else location = 0;
+
+        lastUpwards = upwards;
         return;
     }
+
+    // Deal with a direction reversal
+    if (lastUpwards != upwards) {
+        if (upwards) {
+            for (int i = 0; i < NUM_ROW; i++) {
+                if (rowGrowing[i] == true) rowGrowing[i] = false;
+                else if (rowLevels[i] != START_INTENSITY) {
+                    rowGrowing[i] = true;
+                    location = i;
+                }
+            }
+        }
+        else {
+            for (int i = NUM_ROW - 1; i >= 0; i--) {
+                if (rowGrowing[i] == true) rowGrowing[i] = false;
+                else if (rowLevels[i] != START_INTENSITY) {
+                    rowGrowing[i] = true;
+                    location = i;
+                }
+            }
+        }
+    }
+    lastUpwards = upwards;
 
     // Set lighting by rows
     rowGrowing[location] = true; // Always growing on the leading edge
@@ -554,7 +580,8 @@ void waveVerLED(unsigned long periodMS, bool upwards) {
     }
 
     // Check to propagate
-    if (rowLevels[location] == PROPAGATE_LVL) {
+    // Also check for top out (happens occasionally after direction change)
+    if ((rowLevels[location] == PROPAGATE_LVL) || (rowLevels[location] == END_INTENSITY)) {
         if (upwards) {
             if (location == (NUM_ROW - 1)) {
                 location = 0;
@@ -567,6 +594,7 @@ void waveVerLED(unsigned long periodMS, bool upwards) {
             }
             else location--;
         }
+        rowLevels[location] = rowLevels[location] + INTENSITY_INCR; // Increment new location
     }
 
     // Paint LEDs using gamma correction
@@ -585,6 +613,7 @@ void waveHorLED(unsigned long periodMS, bool rightwards) {
     const int INTENSITY_INCR = (START_INTENSITY < END_INTENSITY) ? 1 : -1;
     const ledlevel_t PROPAGATE_LVL = 32; // Level to start next row
 
+    static bool lastRightwards = false;
     static ledInd_t location = 0; // Location of leading row in effect
     static ledlevel_t colLevels[NUM_COL] = { 0 };
     static bool colGrowing[NUM_COL] = { false }; // Marks if a row's brightness is climbing or not
@@ -606,8 +635,33 @@ void waveHorLED(unsigned long periodMS, bool rightwards) {
 
         if (rightwards) location = NUM_COL - 1;
         else location = 0;
+
+        lastRightwards = rightwards;
         return;
     }
+
+    // Deal with a direction reversal
+    if (lastRightwards != rightwards) {
+        if (rightwards) {
+            for (int i = 0; i < NUM_COL; i++) {
+                if (colLevels[i] == true) colGrowing[i] = false;
+                else if (colLevels[i] != START_INTENSITY) {
+                    colGrowing[i] = true;
+                    location = i;
+                }
+            }
+        }
+        else {
+            for (int i = NUM_COL - 1; i >= 0; i--) {
+                if (colLevels[i] == true) colGrowing[i] = false;
+                else if (colLevels[i] != START_INTENSITY) {
+                    colGrowing[i] = true;
+                    location = i;
+                }
+            }
+        }
+    }
+    lastRightwards = rightwards;
 
     // Set lighting by rows
     colGrowing[location] = true; // Always growing on the leading edge
@@ -625,7 +679,7 @@ void waveHorLED(unsigned long periodMS, bool rightwards) {
     }
 
     // Check to propagate
-    if (colLevels[location] == PROPAGATE_LVL) {
+    if ((colLevels[location] == PROPAGATE_LVL) || (colLevels[location] == END_INTENSITY)) {
         if (rightwards) {
             if (location == (NUM_COL - 1)) {
                 location = 0;
@@ -638,6 +692,7 @@ void waveHorLED(unsigned long periodMS, bool rightwards) {
             }
             else location--;
         }
+        colLevels[location] = colLevels[location] + INTENSITY_INCR; // Increment new location
     }
 
     // Paint LEDs using gamma correction
