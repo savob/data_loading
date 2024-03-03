@@ -468,6 +468,7 @@ void spinningLED(unsigned long periodMS, bool clockwise) {
     // Need to include background to reset 
     const int NUM_STAGES = sizeof(STAGES) / sizeof(STAGES[0]);
 
+    static ledInd_t rotation = 0;
 
     static unsigned long nextMark = 0;      // Marks next time to adjust brightness
     unsigned long currentTime = millis();
@@ -481,24 +482,31 @@ void spinningLED(unsigned long periodMS, bool clockwise) {
     bool restart = checkReset(nextMark, stepMS, currentTime);
     nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
-        uniformLED(BASE_INTENSITY, true);
+        rotation = 0;
+    }
 
-        // Draw the bumps after reset (they will just be rotated)
-        for (int_fast8_t b = 0; b < NUM_BUMPS; b++) {
-            ledInd_t baseAddress = b * SPACING;
+    uniformLED(BASE_INTENSITY, true);
 
-            for (ledInd_t offset = 0; offset < NUM_STAGES; offset++) {
-                ledInd_t ahead = constrainIndex(baseAddress + offset);
-                ledInd_t behind = constrainIndex(baseAddress - offset);
-                LEDgamma[ahead] = STAGES[offset];
-                LEDgamma[behind] = STAGES[offset];
-            }
+    // Draw the bumps
+    for (int_fast8_t b = 0; b < NUM_BUMPS; b++) {
+        ledInd_t baseAddress = b * SPACING;
+
+        for (ledInd_t offset = 0; offset < NUM_STAGES; offset++) {
+            ledInd_t ahead = constrainIndex(baseAddress + offset);
+            ledInd_t behind = constrainIndex(baseAddress - offset);
+            LEDgamma[ahead] = STAGES[offset];
+            LEDgamma[behind] = STAGES[offset];
         }
-        return;
     }
 
     // Enact rotation
-    rotateLED(1, clockwise);
+    rotateLED(rotation, true);
+    
+    // Accumulate rotations this way so direction can be seemlessly switched
+    if (clockwise) rotation++;
+    else rotation--;
+    rotation = constrainIndex(rotation);
+
     copyGammaIntoBuffer();
 }
 
@@ -912,12 +920,13 @@ void bumpsLED(unsigned long stepMS, uint8_t probOfStart) {
     // Check if it is time to adjust effects or not
     if (nextMark > currentTime) return;
 
+    // Reset to base
+    uniformLED(BASE_INTENSITY, true);
+
     // Handle potential reset
     bool restart = checkReset(nextMark, stepMS, currentTime);
     nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
-        // Reset to base
-        uniformLED(BASE_INTENSITY, true);
 
         // Reset bumps
         const ledInd_t SPACING = NUM_LED / NUM_BUMP;
