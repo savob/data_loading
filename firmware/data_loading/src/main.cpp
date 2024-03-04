@@ -40,7 +40,6 @@ void setup() {
 
     initializeLED(drivers);
     for (int i = 0; i < 2; i++) {
-        drivers[i].initialize();
         Serial.print("LED DRIVER ");
         Serial.print(i);
         if (drivers[i].initialize() == IS31_TRANSFER_SUCCESS) Serial.println(" CONFIGURED SUCCESSFULLY");
