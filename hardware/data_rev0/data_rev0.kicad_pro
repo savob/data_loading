@@ -61,7 +61,8 @@
         "lib_footprint_mismatch|207193218|122173609|1c9451b6-ddc8-4658-a3e3-a6e3c5d7b6d6|00000000-0000-0000-0000-000000000000",
         "lib_footprint_mismatch|72000000|138500000|ea1ebcf1-db44-4cb9-8290-e5ebc8e7239e|00000000-0000-0000-0000-000000000000",
         "lib_footprint_mismatch|75000000|124500000|ac2ec035-bac7-4013-9c24-63fd8b3371e4|00000000-0000-0000-0000-000000000000",
-        "lib_footprint_mismatch|97500000|111000000|860eb75a-da9a-4a29-916e-1c05cb616478|00000000-0000-0000-0000-000000000000"
+        "lib_footprint_mismatch|97500000|111000000|860eb75a-da9a-4a29-916e-1c05cb616478|00000000-0000-0000-0000-000000000000",
+        "silk_over_copper|70071894|137864847|f6de50ca-94c2-4389-8317-607ca43b48b9|00000000-0000-0000-0000-000000000000"
       ],
       "meta": {
         "version": 2
@@ -442,7 +443,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "data_rev1.kicad_pro",
+    "filename": "data_rev0.kicad_pro",
     "version": 1
   },
   "net_settings": {
