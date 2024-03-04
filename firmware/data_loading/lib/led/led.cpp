@@ -144,13 +144,20 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
         usedGamma = true;
         sampleAudio = false;
         if (returnState) state = ledFSMstates::BREATH;
+        if (advanceState) state = ledFSMstates::SWEEP;
+        break;
+    case ledFSMstates::SWEEP:
+        sweepLED(2000, 1000, toggleUser);
+        usedGamma = true;
+        sampleAudio = false;
+        if (returnState) state = ledFSMstates::SPINNING;
         if (advanceState) state = ledFSMstates::WAVE_HORI;
         break;
     case ledFSMstates::WAVE_HORI:
         waveHorLED(3000, userControl);
         usedGamma = true;
         sampleAudio = false;
-        if (returnState) state = ledFSMstates::SPINNING;
+        if (returnState) state = ledFSMstates::SWEEP;
         if (advanceState) state = ledFSMstates::WAVE_VERT;
         break;
     case ledFSMstates::WAVE_VERT:
@@ -517,6 +524,105 @@ void spinningLED(unsigned long periodMS, bool clockwise) {
     if (clockwise) rotation++;
     else rotation--;
     rotation = constrainIndex(rotation);
+
+    copyGammaIntoBuffer();
+}
+
+/**
+ * \brief Sweeping effect from one corner to the opposite corner
+ * 
+ * \param periodMS Period for sweep from corner to corner (milliseconds)
+ * \param holdMS How long to hold after a complete sweep (millisocends)
+ * \param toggleCorner Used to advance which corner to use as start
+ */
+void sweepLED(unsigned long periodMS, unsigned long holdMS, bool toggleCorner) {
+
+    const ledlevel_t BASE_INTENSITY = 10;
+    const ledlevel_t PEAK_INTENSITY = 63;
+
+    static unsigned int corner = 0; // Corner to emit effect from
+    static ledInd_t progress = 0;
+    static bool lightingUp = true;
+    static bool holdingOff = false;
+
+    static unsigned long nextMark = 0;      // Marks next time to adjust brightness
+    static unsigned long holdoffEnd = 0;
+    unsigned long currentTime = millis();
+
+    if (toggleCorner) {
+        corner = (corner + 1) % 4;
+
+        // Reset effect
+        uniformLED(BASE_INTENSITY, true);
+        lightingUp = true;
+        progress = 0;
+        holdingOff = false;
+    }
+
+    if (nextMark > currentTime) return; // Wait for effect mark
+
+    // Determine approximate time step for each lighting step so sweep is done
+    unsigned int stepMS = periodMS / (NUM_LED / 2);
+
+    // Check and handle resets
+    bool restart = checkReset(nextMark, stepMS, currentTime);
+    nextMark = currentTime + stepMS; // Update mark after reset check
+    if (restart == true) {
+        uniformLED(BASE_INTENSITY, true);
+        lightingUp = true;
+        progress = 0;
+        holdingOff = false;
+        holdoffEnd = 0;
+        return;
+    }
+
+    // Check and handle hold offs
+    if (holdingOff) {
+        if (holdoffEnd > currentTime) return; // Return until holdoff is to end
+
+        // Start the opposite sweep
+        holdingOff = false;
+        progress = 0;
+        lightingUp = !lightingUp;
+    }
+
+    // Detemine start for sweep effect (some manual adjustments are needed for visuals)
+    ledInd_t baseLocation = LEDstartIndex[corner];
+    switch (corner) {
+    case 0:
+        baseLocation = LEDstartIndex[0];
+        break;
+    case 1:
+        baseLocation = LEDstartIndex[1];
+        break;
+    case 2:
+        baseLocation = LEDstartIndex[2] - 1;
+        break;
+    case 3:
+        baseLocation = LEDstartIndex[3];
+        break;
+    }
+
+    // Check where in sweep effect it is
+    if (progress < (NUM_LED / 2)) {
+        progress++;
+        for (int i = 0; i < progress; i++) {
+            ledInd_t forwards = constrainIndex(baseLocation + i);
+            ledInd_t backwards = constrainIndex(baseLocation - (i + 1));
+            if (lightingUp) {
+                LEDgamma[forwards] = PEAK_INTENSITY;
+                LEDgamma[backwards] = PEAK_INTENSITY;
+            } else {
+                LEDgamma[forwards] = BASE_INTENSITY;
+                LEDgamma[backwards] = BASE_INTENSITY;
+            }
+        }
+    }
+    else {
+        // At the end, start holdoff 
+        holdingOff = true;
+        holdoffEnd = currentTime + holdMS;
+    }
 
     copyGammaIntoBuffer();
 }

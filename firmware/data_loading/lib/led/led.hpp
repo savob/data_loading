@@ -31,6 +31,7 @@ enum ledFSMstates {
     BUMPS,              // A few bumps that move along the edges randomly
     TRACKING,           // Cloud but occasionally some columns get swapped temporarily
     SPINNING,           // Slowly rotating peaks
+    SWEEP,              // Sweep from one corner to another
     AUD_UNI,            // Uniform brightness based on RMS of audio
     AUD_BALANCE,        // Brightness left to right is interpolation of the respective RMSs
     AUD_HORI_SPECTRUM,  // Horizontal spectrum graph
@@ -57,6 +58,7 @@ void copyGammaIntoBuffer();
 void breathingLED(unsigned long periodMS);
 void uniformLED(ledlevel_t intensity, bool gamma);
 void spinningLED(unsigned long periodMS, bool clockwise = true);
+void sweepLED(unsigned long periodMS, unsigned long holdMS, bool toggleCorner);
 void waveVerLED(unsigned long periodMS, bool upwards = true);
 void waveHorLED(unsigned long periodMS, bool rightwards = true);
 void cloudLED(unsigned long stepMS);
