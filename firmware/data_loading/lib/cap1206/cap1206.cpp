@@ -717,19 +717,19 @@ int Cap1206::initialize() {
     if (enableRepeat((uint8_t)(0x0F)) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     
     if (setSensorInputConfig1(MaxDurationcap1206::MAX_DUR_05600, 
-                              RepeatRateCap1206::REP_RATE_140) 
+                              RepeatRateCap1206::REP_RATE_035) 
                               == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     if (setSensorInputConfig2(MinForRepeatCap1206::MIN_PER_560) == CAP1206_TRANSFER_FAIL) 
         return CAP1206_TRANSFER_FAIL;
     if (setAverageAndSampling(AveragedSamplesCap1206::SMPL_008, 
                               SampleTimeCap1206::US_1280, 
-                              CycleTime1206::MS_070) 
+                              CycleTime1206::MS_035) 
                               == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     if (setSensorInputNoiseThreshold(SensNoiseThrsCap1206::PER_375) == CAP1206_TRANSFER_FAIL)
         return CAP1206_TRANSFER_FAIL;
     
     // Calibrate all sensors on start
-    if (setCalibrations((uint8_t)(0x3F)) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL; 
+    if (setCalibrations((uint8_t)(0x0F)) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL; 
     if (enableInterrupt((uint8_t)(0x0F)) == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     if (setRecalConfig(false,   // Set all threshold by writing to sensor one threshold
                        false,   // Clear intermediate data if noise detected

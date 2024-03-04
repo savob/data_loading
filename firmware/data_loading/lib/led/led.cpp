@@ -128,6 +128,7 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
 
     bool usedGamma = true;      // Keeps track of if a state used gamma levels or not
     bool sampleAudio = false;   // Keeps track of if audio sampling is needed (slows looping)
+    bool allowInversion = true; // Record whether a state allows colour inversion or not
 
     if (override) state = overrideState;
     switch (state) {
@@ -238,11 +239,22 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
         break;
     
     default: // Solid is default case
-        uniformLED(128, false);
-        usedGamma = false;
+        static ledlevel_t level = NUM_GAMMA / 2; // Used for the solid lighting level
+        if (toggleUser && (level < (NUM_GAMMA - 1))) level++;
+        if (toggleInvert && (level > 0)) level--;
+        uniformLED(level, true);
+        usedGamma = true;
         sampleAudio = false;
+        allowInversion = false; // Don't want inversion, using it for level control
         if (returnState) state = ledFSMstates::AUD_HORI_SPLIT_VOL;
         if (advanceState) state = ledFSMstates::BREATH;
+
+        // Brightness statements for debugging
+        Serial.print("Gamma / PWM:\t");
+        Serial.print(level);
+        Serial.print("\t");
+        Serial.println(PWM_GAMMA[level]);
+        delay(5);
         break;
     }
 
@@ -252,8 +264,7 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
     prevState = state;
 
     // Handle inverting LED brightness as needed
-    // Need to improve handling for gamma correction
-    if (invertBrightness) {
+    if (invertBrightness && allowInversion) {
         if (usedGamma == true) {
             for (ledInd_t i = 0; i < NUM_LED; i++) LEDgamma[i] = NUM_GAMMA - LEDgamma[i];
             copyGammaIntoBuffer();
