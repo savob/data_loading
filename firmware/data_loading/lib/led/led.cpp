@@ -3,6 +3,26 @@
 #include "is31fl3236.hpp"
 #include "led.hpp"
 
+/*  LED System Code
+
+    This mass is the code for operating the LED system. Primarily
+    to determine what level to set the lights to for all the 
+    different effect. Also responsible for determining the default
+    configuration of the LED drivers (like enabling the different 
+    LED banks).
+
+    These functions are meant to work using a driver chip agnostic
+    system, writing to buffers in RAM which are then re-read by the 
+    drivers.
+
+    One major thing to note is the use of "gamma" levels. Since 
+    human light perception is non-linear to achieve uniformly 
+    perceptible steps of luminosity a lookup table is used to follow
+    a curve that better resembles a linear gradient to our eyes.
+
+    All effect are calculated and "rendered" using these gamma levels.
+*/
+
 const ledInd_t NUM_LED = 72;
 const ledInd_t NUM_ROW = 8;
 const ledInd_t NUM_COL = 30;
@@ -23,7 +43,8 @@ const byte PWM_GAMMA[] = {
   0xac,0xb0,0xb9,0xbf,0xc6,0xcb,0xcf,0xd6,
   0xe1,0xe9,0xed,0xf1,0xf6,0xfa,0xfe,0xff
 }; // Gamma levels that are perceived as even steps in brightness
-const unsigned int NUM_GAMMA = sizeof(PWM_GAMMA) / sizeof(PWM_GAMMA[0]);
+// Number of perceptable "gamma" levels available
+const unsigned int NUM_GAMMA = sizeof(PWM_GAMMA) / sizeof(PWM_GAMMA[0]); 
 
 /**
  * \brief Function to initialize the LEDs
@@ -126,7 +147,6 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
     if (toggleUser) userControl = !userControl;
     if (toggleInvert) invertBrightness = !invertBrightness;
 
-    bool usedGamma = true;      // Keeps track of if a state used gamma levels or not
     bool sampleAudio = false;   // Keeps track of if audio sampling is needed (slows looping)
     bool allowInversion = true; // Record whether a state allows colour inversion or not
 
@@ -134,119 +154,102 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
     switch (state) {
     case ledFSMstates::BREATH:
         breathingLED(5000);
-        usedGamma = true;
         sampleAudio = false;
         if (returnState) state = ledFSMstates::SOLID;
         if (advanceState) state = ledFSMstates::SPINNING;
         break;
     case ledFSMstates::SPINNING:
         spinningLED(5000, userControl);
-        usedGamma = true;
         sampleAudio = false;
         if (returnState) state = ledFSMstates::BREATH;
         if (advanceState) state = ledFSMstates::SWEEP;
         break;
     case ledFSMstates::SWEEP:
         sweepLED(2000, 1000, toggleUser);
-        usedGamma = true;
         sampleAudio = false;
         if (returnState) state = ledFSMstates::SPINNING;
         if (advanceState) state = ledFSMstates::SWAY;
         break;
     case ledFSMstates::SWAY:
         swayLED(2000, 1000, toggleUser);
-        usedGamma = true;
         sampleAudio = false;
         if (returnState) state = ledFSMstates::SWEEP;
         if (advanceState) state = ledFSMstates::WAVE_HORI;
         break;
     case ledFSMstates::WAVE_HORI:
         waveHorLED(3000, userControl);
-        usedGamma = true;
         sampleAudio = false;
         if (returnState) state = ledFSMstates::SWAY;
         if (advanceState) state = ledFSMstates::WAVE_VERT;
         break;
     case ledFSMstates::WAVE_VERT:
         waveVerLED(3000, userControl);
-        usedGamma = true;
         sampleAudio = false;
         if (returnState) state = ledFSMstates::WAVE_HORI;
         if (advanceState) state = ledFSMstates::CLOUD;
         break;
     case ledFSMstates::CLOUD:
         cloudLED(8);
-        usedGamma = true;
         sampleAudio = false;
         if (returnState) state = ledFSMstates::WAVE_VERT;
         if (advanceState) state = ledFSMstates::TRACKING;
         break;
     case ledFSMstates::TRACKING:
         trackingLED(8, 500, 2, 5);
-        usedGamma = true;
         sampleAudio = false;
         if (returnState) state = ledFSMstates::CLOUD;
         if (advanceState) state = ledFSMstates::BUMPS;
         break;
     case ledFSMstates::BUMPS:
         bumpsLED(10);
-        usedGamma = true;
         sampleAudio = false;
         if (returnState) state = ledFSMstates::TRACKING;
         if (advanceState) state = ledFSMstates::AUD_UNI;
         break;
     case ledFSMstates::AUD_UNI:
         audioUniformLED(10, lRMS, rRMS);
-        usedGamma = true;
         sampleAudio = true;
         if (returnState) state = ledFSMstates::BUMPS;
         if (advanceState) state = ledFSMstates::AUD_BALANCE;
         break;
     case ledFSMstates::AUD_BALANCE:
         audioBalanceLED(10, lRMS, rRMS);
-        usedGamma = true;
         sampleAudio = true;
         if (returnState) state = ledFSMstates::AUD_UNI;
         if (advanceState) state = ledFSMstates::AUD_HORI_SPECTRUM;
         break;
     case ledFSMstates::AUD_HORI_SPECTRUM:
         audioHoriSpectrumLED(10, lMag, rMag, userControl);
-        usedGamma = true;
         sampleAudio = true;
         if (returnState) state = ledFSMstates::AUD_BALANCE;
         if (advanceState) state = ledFSMstates::AUD_SPLIT;
         break;
     case ledFSMstates::AUD_SPLIT:
         audioSplitSpectrumLED(10, lMag, rMag, userControl);
-        usedGamma = true;
         sampleAudio = true;
         if (returnState) state = ledFSMstates::AUD_HORI_SPECTRUM;
         if (advanceState) state = ledFSMstates::AUD_SPLIT_SPIN;
         break;
     case ledFSMstates::AUD_SPLIT_SPIN:
         audioSplitSpectrumSpinLED(20, lMag, rMag, userControl);
-        usedGamma = true;
         sampleAudio = true;
         if (returnState) state = ledFSMstates::AUD_SPLIT;
         if (advanceState) state = ledFSMstates::AUD_VERT_VOL;
         break;
     case ledFSMstates::AUD_VERT_VOL:
         audioVertVolLED(20, lRMS, rRMS, userControl);
-        usedGamma = true;
         sampleAudio = true;
         if (returnState) state = ledFSMstates::AUD_SPLIT_SPIN;
         if (advanceState) state = ledFSMstates::AUD_HORI_VOL;
         break;
     case ledFSMstates::AUD_HORI_VOL:
         audioHoriVolLED(20, lRMS, rRMS, userControl);
-        usedGamma = true;
         sampleAudio = true;
         if (returnState) state = ledFSMstates::AUD_VERT_VOL;
         if (advanceState) state = ledFSMstates::AUD_HORI_SPLIT_VOL;
         break;
     case ledFSMstates::AUD_HORI_SPLIT_VOL:
         audioHoriSplitVolLED(20, lRMS, rRMS);
-        usedGamma = true;
         sampleAudio = true;
         if (returnState) state = ledFSMstates::AUD_HORI_VOL;
         if (advanceState) state = ledFSMstates::SOLID;
@@ -256,8 +259,7 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
         static ledlevel_t level = NUM_GAMMA / 2; // Used for the solid lighting level
         if (toggleUser && (level < (NUM_GAMMA - 1))) level++;
         if (toggleInvert && (level > 0)) level--;
-        uniformLED(level, true);
-        usedGamma = true;
+        uniformLED(level);
         sampleAudio = false;
         allowInversion = false; // Don't want inversion, using it for level control
         if (returnState) state = ledFSMstates::AUD_HORI_SPLIT_VOL;
@@ -278,15 +280,7 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
     prevState = state;
 
     // Handle inverting LED brightness as needed
-    if (invertBrightness && allowInversion) {
-        if (usedGamma == true) {
-            for (ledInd_t i = 0; i < NUM_LED; i++) LEDgamma[i] = NUM_GAMMA - LEDgamma[i];
-            copyGammaIntoBuffer();
-        }
-        else {
-            for (ledInd_t i = 0; i < NUM_LED; i++) LEDlevel[i] = 255 - LEDlevel[i];
-        }
-    }
+    copyGammaIntoBuffer(invertBrightness && allowInversion);
 
     return sampleAudio; // Let the main loop if we need audio samples
 }
@@ -346,69 +340,59 @@ ledInd_t constrainIndex(ledInd_t ind, ledInd_t limit) {
  * \brief Paints the LEDs in each row a uniform brightness
  * 
  * \param intensities Array of intensities to paint on the rows
- * \param gamma Are intensities gamma levels or not? (0 to NUM_GAMMA)
  * 
  * \note Bottom row is row 0
  */
-void paintRows(ledlevel_t intensities[], bool gamma) {
-    ledlevel_t* targetBuf = nullptr;
-    if (gamma == true) targetBuf = LEDgamma;
-    else targetBuf = LEDlevel;
-
+void paintRows(ledlevel_t intensities[]) {
     // Right side
     for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++)
-        targetBuf[i] = intensities[(NUM_ROW - 1) - i];
+        LEDgamma[i] = intensities[(NUM_ROW - 1) - i];
     // Bottom row
     for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++)
-        targetBuf[i] = intensities[0];
+        LEDgamma[i] = intensities[0];
     // Left side
     for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++)
-        targetBuf[i] = intensities[i - LEDstartIndex[2]];
+        LEDgamma[i] = intensities[i - LEDstartIndex[2]];
     // Top row
     for (ledInd_t i = LEDstartIndex[3]; i < NUM_LED; i++)
-        targetBuf[i] = intensities[NUM_ROW - 1];
-    
-    if (gamma == true) copyGammaIntoBuffer();
+        LEDgamma[i] = intensities[NUM_ROW - 1];
 }
 
 /**
  * \brief Paints the LEDs in each column a uniform brightness
  * 
  * \param intensities Array of intensities to paint on the columns
- * \param gamma Are intensities gamma levels or not? (0 to NUM_GAMMA)
  * 
  * \note Left column is column 0
  */
-void paintColumns(ledlevel_t intensities[], bool gamma) {
-    ledlevel_t* targetBuf = nullptr;
-    if (gamma == true) targetBuf = LEDgamma;
-    else targetBuf = LEDlevel;
-
+void paintColumns(ledlevel_t intensities[]) {
     // Right side
     for (ledInd_t i = LEDstartIndex[0]; i < LEDstartIndex[1]; i++) 
-        targetBuf[i] = intensities[NUM_COL - 1];
+        LEDgamma[i] = intensities[NUM_COL - 1];
     // Bottom row
     for (ledInd_t i = LEDstartIndex[1]; i < LEDstartIndex[2]; i++) 
-        targetBuf[i] = intensities[(NUM_COL - 1) - (i - LEDstartIndex[1])];
+        LEDgamma[i] = intensities[(NUM_COL - 1) - (i - LEDstartIndex[1])];
     // Left side
     for (ledInd_t i = LEDstartIndex[2]; i < LEDstartIndex[3]; i++) 
-        targetBuf[i] = intensities[0];
+        LEDgamma[i] = intensities[0];
     // Top row, since it is a bit narrower we skip the outer values
     for (ledInd_t i = LEDstartIndex[3]; i < NUM_LED; i++) 
-        targetBuf[i] = intensities[(i + 1) - LEDstartIndex[3]];
-
-
-    if (gamma == true) copyGammaIntoBuffer();
+        LEDgamma[i] = intensities[(i + 1) - LEDstartIndex[3]];
 }
 
 /**
  * \brief Copies the gamma brightness buffer into the actual light intensity buffer
  * 
+ * \param invert Invert the gamma intensities or not
  */
-void copyGammaIntoBuffer() {
+void copyGammaIntoBuffer(bool invert) {
     for (ledInd_t i = 0; i < NUM_LED; i++) {
+        // Clamp buffer
         if (LEDgamma[i] >= NUM_GAMMA) LEDgamma[i] = NUM_GAMMA - 1;
-        LEDlevel[i] = PWM_GAMMA[LEDgamma[i]];
+
+        // Copy value as is or inverted
+        if (!invert) LEDlevel[i] = PWM_GAMMA[LEDgamma[i]];
+        else LEDlevel[i] = PWM_GAMMA[(NUM_GAMMA - 1) - LEDgamma[i]];
     }
 }
 
@@ -416,23 +400,15 @@ void copyGammaIntoBuffer() {
  * \brief Sets all LEDs to a uniform brightness
  * 
  * \param intensity LED level to set
- * \param gamma Is this a gamma level (true) or direct intensity (false)
  */
-void uniformLED(ledlevel_t intensity, bool gamma) {
-    if (gamma == false) {
-        for (ledInd_t i = 0; i < NUM_LED; i++) LEDlevel[i] = intensity;
-    }
-    else {
-        for (ledInd_t i = 0; i < NUM_LED; i++) LEDgamma[i] = intensity;
-        copyGammaIntoBuffer();
-    }
+void uniformLED(ledlevel_t intensity) {
+    for (ledInd_t i = 0; i < NUM_LED; i++) LEDgamma[i] = intensity;
 }
 
 /**
  * \brief Does a uniform cyclic breathing effect (fading in and out)
  * 
  * \param periodMS Period in ms for a complete breathing cycle
- * \note Will intrepret a lack of calls in 
  */
 void breathingLED(unsigned long periodMS) {
     const ledlevel_t MAX_INTENSITY = NUM_GAMMA;
@@ -455,8 +431,6 @@ void breathingLED(unsigned long periodMS) {
     if (restart == true) {
         breathingIntensity = MIN_INTENSITY;
         climbing = true;
-        uniformLED(breathingIntensity, true);
-        return;
     }
 
     // Actually enact effect
@@ -474,7 +448,7 @@ void breathingLED(unsigned long periodMS) {
         }
         else breathingIntensity -= intensityStep;
     }
-    uniformLED(breathingIntensity, true);
+    uniformLED(breathingIntensity);
 }
 
 /**
@@ -510,7 +484,7 @@ void spinningLED(unsigned long periodMS, bool clockwise) {
         rotation = 0;
     }
 
-    uniformLED(BASE_INTENSITY, true);
+    uniformLED(BASE_INTENSITY);
 
     // Draw the bumps
     for (int_fast8_t b = 0; b < NUM_BUMPS; b++) {
@@ -531,8 +505,6 @@ void spinningLED(unsigned long periodMS, bool clockwise) {
     if (clockwise) rotation++;
     else rotation--;
     rotation = constrainIndex(rotation);
-
-    copyGammaIntoBuffer();
 }
 
 /**
@@ -560,7 +532,7 @@ void sweepLED(unsigned long periodMS, unsigned long holdMS, bool toggleCorner) {
         corner = (corner + 1) % 4;
 
         // Reset effect
-        uniformLED(BASE_INTENSITY, true);
+        uniformLED(BASE_INTENSITY);
         lightingUp = true;
         progress = 0;
         holdingOff = false;
@@ -575,7 +547,7 @@ void sweepLED(unsigned long periodMS, unsigned long holdMS, bool toggleCorner) {
     bool restart = checkReset(nextMark, stepMS, currentTime);
     nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
-        uniformLED(BASE_INTENSITY, true);
+        uniformLED(BASE_INTENSITY);
         lightingUp = true;
         progress = 0;
         holdingOff = false;
@@ -630,8 +602,6 @@ void sweepLED(unsigned long periodMS, unsigned long holdMS, bool toggleCorner) {
         holdingOff = true;
         holdoffEnd = currentTime + holdMS;
     }
-
-    copyGammaIntoBuffer();
 }
 
 /**
@@ -658,7 +628,7 @@ void swayLED(unsigned long periodMS, unsigned long holdMS, bool toggleCorner) {
         corner = (corner + 1) % 4;
 
         // Reset effect
-        uniformLED(BASE_INTENSITY, true);
+        uniformLED(BASE_INTENSITY);
         lightingUp = true;
         progress = 0;
         holdingOff = false;
@@ -673,7 +643,7 @@ void swayLED(unsigned long periodMS, unsigned long holdMS, bool toggleCorner) {
     bool restart = checkReset(nextMark, stepMS, currentTime);
     nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
-        uniformLED(BASE_INTENSITY, true);
+        uniformLED(BASE_INTENSITY);
         lightingUp = true;
         progress = 0;
         holdingOff = false;
@@ -728,8 +698,6 @@ void swayLED(unsigned long periodMS, unsigned long holdMS, bool toggleCorner) {
         holdingOff = true;
         holdoffEnd = currentTime + holdMS;
     }
-
-    copyGammaIntoBuffer();
 }
 
 /**
@@ -762,7 +730,7 @@ void waveVerLED(unsigned long periodMS, bool upwards) {
     nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
         for (ledInd_t i = 0; i < NUM_ROW; i++) rowLevels[i] = START_INTENSITY;
-        uniformLED(START_INTENSITY, true);
+        uniformLED(START_INTENSITY);
 
         if (upwards) location = NUM_ROW - 1;
         else location = 0;
@@ -828,7 +796,7 @@ void waveVerLED(unsigned long periodMS, bool upwards) {
     }
 
     // Paint LEDs using gamma correction
-    paintRows(rowLevels, true);
+    paintRows(rowLevels);
 }
 
 /**
@@ -861,7 +829,7 @@ void waveHorLED(unsigned long periodMS, bool rightwards) {
     nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
         for (ledInd_t i = 0; i < NUM_COL; i++) colLevels[i] = START_INTENSITY;
-        uniformLED(START_INTENSITY, true);
+        uniformLED(START_INTENSITY);
 
         if (rightwards) location = NUM_COL - 1;
         else location = 0;
@@ -926,7 +894,7 @@ void waveHorLED(unsigned long periodMS, bool rightwards) {
     }
 
     // Paint LEDs using gamma correction
-    paintColumns(colLevels, true);
+    paintColumns(colLevels);
 }
 
 /**
@@ -952,7 +920,7 @@ void cloudLED(unsigned long stepMS) {
     nextMark = currentTime + stepMS; // Update mark after reset check
     if (restart == true) {
         // Reset to middle light level
-        uniformLED((MIN_INTENSITY + MAX_INTENSITY) / 2, true);
+        uniformLED((MIN_INTENSITY + MAX_INTENSITY) / 2);
         return;
     }
 
@@ -990,7 +958,6 @@ void cloudLED(unsigned long stepMS) {
             else LEDgamma[target[i]] = MIN_INTENSITY;
         }
     }
-    copyGammaIntoBuffer();
 }
 
 /**
@@ -1118,7 +1085,7 @@ void trackingLED(unsigned long stepMS, unsigned long swapDurMS,
         }
     }
 
-    paintColumns(colIntensity, true);
+    paintColumns(colIntensity);
 }
 
 /**
@@ -1157,7 +1124,7 @@ void bumpsLED(unsigned long stepMS, uint8_t probOfStart) {
     if (nextMark > currentTime) return;
 
     // Reset to base
-    uniformLED(BASE_INTENSITY, true);
+    uniformLED(BASE_INTENSITY);
 
     // Handle potential reset
     bool restart = checkReset(nextMark, stepMS, currentTime);
@@ -1239,8 +1206,6 @@ void bumpsLED(unsigned long stepMS, uint8_t probOfStart) {
             if (isDomBackwards) LEDgamma[tarIndBack] = STAGES[offset];
         }
     }
-
-    copyGammaIntoBuffer();
 }
 
 /**
@@ -1270,7 +1235,7 @@ void audioUniformLED(unsigned long stepMS, double leftRMS, double rightRMS) {
 
     ledlevel_t level = overall * NUM_GAMMA;
 
-    uniformLED(level, true);
+    uniformLED(level);
 }
 
 /**
@@ -1317,7 +1282,7 @@ void audioBalanceLED(unsigned long stepMS, double leftRMS, double rightRMS) {
         // Serial.print("\t");
     }
     // Serial.println("");
-    paintColumns(colMag, true);
+    paintColumns(colMag);
 }
 
 /**
@@ -1393,7 +1358,7 @@ void audioHoriSpectrumLED(unsigned long stepMS, double left[], double right[], b
         else columns[NUM_COL - (i + 1)] = lRes[i];
     }
 
-    paintColumns(columns, true);
+    paintColumns(columns);
 }
 
 /**
@@ -1437,7 +1402,6 @@ void audioSplitSpectrumLED(unsigned long stepMS, double left[], double right[], 
         LEDgamma[curLeft] = lRes[i] * SCALING;
         LEDgamma[curRight] = rRes[i] * SCALING;
     }
-    copyGammaIntoBuffer();
 }
 
 /**
@@ -1531,7 +1495,7 @@ void audioVertVolLED(unsigned long stepMS, double leftRMS, double rightRMS, bool
         for (int i = 0; i < NUM_ROW; i++) rows[i] = temp[i];
     }
 
-    paintRows(rows, true);
+    paintRows(rows);
 }
 
 /**
@@ -1596,7 +1560,7 @@ void audioHoriVolLED(unsigned long stepMS, double leftRMS, double rightRMS, bool
         for (int i = 0; i < NUM_COL; i++) cols[i] = temp[i];
     }
 
-    paintColumns(cols, true);
+    paintColumns(cols);
 }
 
 /**
@@ -1675,5 +1639,5 @@ void audioHoriSplitVolLED(unsigned long stepMS, double leftRMS, double rightRMS)
         cols[peakLocation[i]] = PEAK_INTENSITY;
     }
 
-    paintColumns(cols, true);
+    paintColumns(cols);
 }

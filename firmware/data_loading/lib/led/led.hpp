@@ -52,12 +52,12 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
 
 bool checkReset(unsigned long mark, unsigned long stepPeriod, unsigned long curTime);
 ledInd_t constrainIndex(ledInd_t ind, ledInd_t limit = NUM_LED);
-void paintColumns(ledlevel_t intensities[], bool gamma = false);
-void paintRows(ledlevel_t intensities[], bool gamma = false);
-void copyGammaIntoBuffer();
+void paintColumns(ledlevel_t intensities[]);
+void paintRows(ledlevel_t intensities[]);
+void copyGammaIntoBuffer(bool invert);
 
 void breathingLED(unsigned long periodMS);
-void uniformLED(ledlevel_t intensity, bool gamma);
+void uniformLED(ledlevel_t intensity);
 void spinningLED(unsigned long periodMS, bool clockwise = true);
 void sweepLED(unsigned long periodMS, unsigned long holdMS, bool toggleCorner);
 void swayLED(unsigned long periodMS, unsigned long holdMS, bool toggleCorner);
