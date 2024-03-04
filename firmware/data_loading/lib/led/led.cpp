@@ -161,14 +161,14 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
         if (advanceState) state = ledFSMstates::CLOUD;
         break;
     case ledFSMstates::CLOUD:
-        cloudLED(10);
+        cloudLED(8);
         usedGamma = true;
         sampleAudio = false;
         if (returnState) state = ledFSMstates::WAVE_VERT;
         if (advanceState) state = ledFSMstates::TRACKING;
         break;
     case ledFSMstates::TRACKING:
-        trackingLED(10, 500, 2, 3);
+        trackingLED(8, 500, 2, 5);
         usedGamma = true;
         sampleAudio = false;
         if (returnState) state = ledFSMstates::CLOUD;
@@ -727,8 +727,8 @@ void waveHorLED(unsigned long periodMS, bool rightwards) {
 void cloudLED(unsigned long stepMS) {
     const ledlevel_t MAX_INTENSITY = 60;
     const ledlevel_t MIN_INTENSITY = 10;
-    const ledlevel_t INCREMENT = 1;
-    const unsigned int NUM_ADJUST = 8; // How many LEDs get adjusted per cycle
+    const ledlevel_t MAX_INCREMENT = 6;
+    const unsigned int NUM_ADJUST = 12; // How many LEDs get adjusted per cycle
 
     static unsigned long nextMark = 0;      // Marks next time to adjust brightness
     unsigned long currentTime = millis();
@@ -767,10 +767,17 @@ void cloudLED(unsigned long stepMS) {
     
     // Enact the changes if valid
     for (uint_fast8_t i = 0; i < NUM_ADJUST; i++) {
-        if ((increase[i] == true) && (LEDgamma[target[i]] < MAX_INTENSITY)) 
-            LEDgamma[target[i]] = LEDgamma[i] + INCREMENT;
-        if ((increase[i] == false) && (LEDgamma[target[i]] > MIN_INTENSITY)) 
-            LEDgamma[target[i]] = LEDgamma[i] - INCREMENT;;
+        ledlevel_t increment = (random() % MAX_INCREMENT) + 1;
+        if (increase[i] == true) {
+            if (LEDgamma[target[i]] < (MAX_INTENSITY - increment))
+                LEDgamma[target[i]] = LEDgamma[target[i]] + increment;
+            else LEDgamma[target[i]] = MAX_INTENSITY;
+        }
+        if (increase[i] == false) {
+            if (LEDgamma[target[i]] > (MIN_INTENSITY + increment))
+                LEDgamma[target[i]] = LEDgamma[target[i]] - increment;
+            else LEDgamma[target[i]] = MIN_INTENSITY;
+        }
     }
     copyGammaIntoBuffer();
 }
@@ -789,10 +796,10 @@ void trackingLED(unsigned long stepMS, unsigned long swapDurMS,
                  unsigned int widthSwap, uint8_t probOfSwap) {
     const ledlevel_t MAX_INTENSITY = 60;
     const ledlevel_t MIN_INTENSITY = 10;
-    const ledlevel_t INCREMENT = 3;
+    const ledlevel_t MAX_INCREMENT = 3;
     static ledlevel_t colIntensity[NUM_COL] = {0};
-    const unsigned int NUM_ADJUST = 2;   // How many columns get adjusted per cycle
-    const unsigned int NUM_SWAPS = 2;    // Number of possible simultanious swaps
+    const unsigned int NUM_ADJUST = 4;   // How many columns get adjusted per cycle
+    const unsigned int NUM_SWAPS = 3;    // Number of possible simultanious swaps
 
     struct swap_t {
         bool enabled = false;       // Is this swap active?
@@ -842,10 +849,17 @@ void trackingLED(unsigned long stepMS, unsigned long swapDurMS,
     
     // Enact the changes if valid
     for (uint_fast8_t i = 0; i < NUM_ADJUST; i++) {
-        if ((increase[i] == true) && (colIntensity[target[i]] < MAX_INTENSITY)) 
-            colIntensity[target[i]] = colIntensity[target[i]] + INCREMENT;
-        if ((increase[i] == false) && (colIntensity[target[i]] > MIN_INTENSITY)) 
-            colIntensity[target[i]] = colIntensity[target[i]] - INCREMENT;
+        ledlevel_t increment = (random() % MAX_INCREMENT) + 1;
+        if (increase[i] == true) {
+            if (colIntensity[target[i]] < (MAX_INTENSITY - increment))
+                colIntensity[target[i]] = colIntensity[target[i]] + increment;
+            else colIntensity[target[i]] = MAX_INTENSITY;
+        }
+        if (increase[i] == false) {
+            if (colIntensity[target[i]] > (MIN_INTENSITY + increment))
+                colIntensity[target[i]] = colIntensity[target[i]] - increment;
+            else colIntensity[target[i]] = MIN_INTENSITY;
+        }
     }
 
     // Work through swaps
