@@ -95,7 +95,7 @@ void readAudio(double leftMag[], double rightMag[], double* leftRMS, double* rig
 
     // printSampling(); // Comment out FFT calculations before this if active
 
-    // Copy normalized values to different memory location
+    // Copy normalized values to different memory location (10ms)
     for (int i = 0; i < NUM_SPECTRUM; i++) {
         leftMag[i] = normalizeFreqMag(vReal_L[i]);
         rightMag[i] = normalizeFreqMag(vReal_R[i]);
