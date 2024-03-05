@@ -49,21 +49,19 @@ int setupAudio() {
  * \note All values are normalized such that they go from 0 to 1
  */
 void readAudio(double leftMag[], double rightMag[], double* leftRMS, double* rightRMS) {
+    // Reset RMS
+    *leftRMS = 0;
+    *rightRMS = 0;
+
     // Sample collection
+    // Since this is blocking for the 5ms needed, I've stuffed in other sample related math
+    // The normailizng and RMS math takes about 2.30ms to complete on it's own
+    unsigned long samplePer = micros();
     unsigned long nextMarkUS = micros();
     for (int i = 0; i < NUM_AUDIO_SAMPLES; i++) {
         wave_R[i] = analogRead(R_IN);
-        wave_L[i] = analogRead(L_IN);      
-        while(micros() - nextMarkUS < SAMPLE_PER_US){
-            // Wait for next mark
-        }
-        nextMarkUS += SAMPLE_PER_US;
-    } // (5ms)
+        wave_L[i] = analogRead(L_IN);
 
-    // FFT Data preparation (1.7ms)
-    *leftRMS = 0;
-    *rightRMS = 0;
-    for (int i = 0; i < NUM_AUDIO_SAMPLES; i++) {
         // Normalize ADC readings
         vReal_R[i] = ((double)wave_R[i] / 2048.0) - 1.0;
         vReal_L[i] = ((double)wave_L[i] / 2048.0) - 1.0;
@@ -73,6 +71,10 @@ void readAudio(double leftMag[], double rightMag[], double* leftRMS, double* rig
         // Accumulate RMS
         *leftRMS = *leftRMS + (vReal_L[i] * vReal_L[i]);
         *rightRMS = *rightRMS + (vReal_R[i] * vReal_R[i]);
+        while(micros() - nextMarkUS < SAMPLE_PER_US){
+            // Wait for next mark
+        }
+        nextMarkUS += SAMPLE_PER_US;
     }
 
     // Finish RMS calculations
