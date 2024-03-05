@@ -583,21 +583,21 @@ void sweepLED(unsigned long periodMS, unsigned long holdMS, bool toggleCorner) {
     }
 
     // Check where in sweep effect it is
-    if (progress < (NUM_LED / 2)) {
-        progress++;
-        for (int i = 0; i < progress; i++) {
-            ledInd_t forwards = constrainIndex(baseLocation + i);
-            ledInd_t backwards = constrainIndex(baseLocation - (i + 1));
-            if (lightingUp) {
-                LEDgamma[forwards] = PEAK_INTENSITY;
-                LEDgamma[backwards] = PEAK_INTENSITY;
-            } else {
-                LEDgamma[forwards] = BASE_INTENSITY;
-                LEDgamma[backwards] = BASE_INTENSITY;
-            }
+    progress++;
+    for (int i = 0; i < (NUM_LED / 2); i++) {
+        ledInd_t forwards = constrainIndex(baseLocation + i);
+        ledInd_t backwards = constrainIndex(baseLocation - (i + 1));
+
+        if (lightingUp != (i >= progress)) {
+            LEDgamma[forwards] = PEAK_INTENSITY;
+            LEDgamma[backwards] = PEAK_INTENSITY;
+        } else {
+            LEDgamma[forwards] = BASE_INTENSITY;
+            LEDgamma[backwards] = BASE_INTENSITY;
         }
     }
-    else {
+
+    if (progress >= (NUM_LED / 2)) {
         // At the end, start holdoff 
         holdingOff = true;
         holdoffEnd = currentTime + holdMS;
