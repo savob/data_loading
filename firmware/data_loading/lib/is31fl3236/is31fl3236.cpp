@@ -107,12 +107,23 @@ int IS31FL3236::updateChannelConfigurations() {
 
 /**
  * \brief Updates the PWM duty for each channel
+ * \note Tries to avoid redundant updates by tracking previous state and not updating if no changes occur.
+ * 
+ * \param forceUpdate Forces the driver to update duties regardless of previous state
  * 
  * \note This only updates the PWM duties, it will not update channel configuration. `updateChannelConfigurations` is for that.
  * \return Return status of the transfer 
  */
-int IS31FL3236::updateDuties() {
+int IS31FL3236::updateDuties(bool forceUpdate) {
     uint_fast8_t count = 0;
+
+    if (!forceUpdate) {
+        // Check if an update is needed by counting new values
+        for (uint_fast8_t i = 0; i < 36; i++) {
+            if (prevDuties[i] != duty[i]) count++;
+        }
+        if (count == 0) return IS31_TRANSFER_SUCCESS;
+    }
 
     interface->beginTransmission(ADDRESS); 
 
@@ -121,6 +132,7 @@ int IS31FL3236::updateDuties() {
 
     for (uint_fast8_t i = 0; i < 36; i++) {
         count = count + interface->write(duty[i]);
+        prevDuties[i] = duty[i];
     }
     count = count + interface->write(0x00); // Write to the PWM update register to have values reflected in hardware
     interface->endTransmission();

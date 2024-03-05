@@ -56,7 +56,6 @@ void readAudio(double leftMag[], double rightMag[], double* leftRMS, double* rig
     // Sample collection
     // Since this is blocking for the 5ms needed, I've stuffed in other sample related math
     // The normailizng and RMS math takes about 2.30ms to complete on it's own
-    unsigned long samplePer = micros();
     unsigned long nextMarkUS = micros();
     for (int i = 0; i < NUM_AUDIO_SAMPLES; i++) {
         wave_R[i] = analogRead(R_IN);

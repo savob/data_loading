@@ -113,6 +113,8 @@ class IS31FL3236 {
 private: 
     const uint8_t ADDRESS;
     const pin_size_t SHUTDOWN_PIN;
+    
+    uint_fast8_t prevDuties[36] = {0}; // Records previous duties uploaded to LED drivers
 
     TwoWire* interface;
 
@@ -133,7 +135,7 @@ public:
     int setPWMfrequency(FrequencyIS31FL3236 freq);
 
     int updateChannelConfigurations();
-    int updateDuties();
+    int updateDuties(bool forceUpdate = false);
 };
 
 #endif

@@ -65,8 +65,10 @@ void loop() {
 
     if (sampleAudio) readAudio(left, right, &leftRMS, &rightRMS);
 
+    // LED FSMs usually take about 40 to 160 us to execute, peak at about 250
     sampleAudio = LEDfsm(pads, left, right, leftRMS, rightRMS); //, ledFSMstates::AUD_UNI, true);
 
+    // Updating entire PWM buffer takes about 1 ms per chip updated
     remapLED(drivers);
     drivers[0].updateDuties();
     drivers[1].updateDuties();
