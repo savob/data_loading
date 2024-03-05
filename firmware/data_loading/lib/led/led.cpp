@@ -165,13 +165,13 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
         if (advanceState) state = ledFSMstates::SWEEP;
         break;
     case ledFSMstates::SWEEP:
-        sweepLED(2000, 1000, toggleUser);
+        sweepLED(500, 500, toggleUser);
         sampleAudio = false;
         if (returnState) state = ledFSMstates::SPINNING;
         if (advanceState) state = ledFSMstates::SWAY;
         break;
     case ledFSMstates::SWAY:
-        swayLED(2000, 1000, toggleUser);
+        swayLED(500, 500, toggleUser);
         sampleAudio = false;
         if (returnState) state = ledFSMstates::SWEEP;
         if (advanceState) state = ledFSMstates::WAVE_HORI;
@@ -1096,7 +1096,7 @@ void trackingLED(unsigned long stepMS, unsigned long swapDurMS,
  */
 void bumpsLED(unsigned long stepMS, uint8_t probOfStart) {
     const ledlevel_t BASE_INTENSITY = 10;
-    const unsigned int NUM_BUMP = 2;                // Number of bumps
+    const unsigned int NUM_BUMP = 3;                // Number of bumps
     const unsigned int MAX_MOVEMENT_PERIOD = 50;    // Maximum period between bump steps
     const unsigned int MIN_MOVEMENT_PERIOD = 10;    // Minimum period for bump steps
     const unsigned int MAX_MOVEMENT_STEP_SIZE = 1;  // The maximum number of LEDs moved per step
