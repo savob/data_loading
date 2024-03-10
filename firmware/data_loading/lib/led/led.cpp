@@ -1478,16 +1478,18 @@ void audioVertVolLED(unsigned long stepMS, double leftRMS, double rightRMS, bool
 
     // Upper mark, falls at a set rate
     static unsigned long nextPeakMark = 0;
-    static ledInd_t peakLocation = NUM_ROW -1;
+    static ledInd_t peakLocation = NUM_ROW - 1;
+
+    if (fullRow >= peakLocation) {
+        peakLocation = fullRow + 1;
+        if (peakLocation >= NUM_ROW - 1) peakLocation = NUM_ROW - 1;
+        nextPeakMark = currentTime + FALLDOWN_PERIOD;
+    }
 
     if (nextPeakMark < currentTime) {
         nextPeakMark = currentTime + FALLDOWN_PERIOD;
 
         if (peakLocation > 0) peakLocation--;
-    }
-    else if (fullRow >= peakLocation) {
-        peakLocation = fullRow + 1;
-        nextPeakMark = currentTime + FALLDOWN_PERIOD;
     }
     rows[peakLocation] = PEAK_INTENSITY;
 
@@ -1545,14 +1547,16 @@ void audioHoriVolLED(unsigned long stepMS, double leftRMS, double rightRMS, bool
     static unsigned long nextPeakMark = 0;
     static ledInd_t peakLocation = NUM_COL - 1;
 
+    if (fullCol >= peakLocation) {
+        peakLocation = fullCol + 1;
+        if (peakLocation >= NUM_COL - 1) peakLocation = NUM_COL - 1;
+        nextPeakMark = currentTime + FALLDOWN_PERIOD;
+    }
+
     if (nextPeakMark < currentTime) {
         nextPeakMark = currentTime + FALLDOWN_PERIOD;
 
         if (peakLocation > 0) peakLocation--;
-    }
-    else if (fullCol >= peakLocation) {
-        peakLocation = fullCol + 1;
-        nextPeakMark = currentTime + FALLDOWN_PERIOD;
     }
     cols[peakLocation] = PEAK_INTENSITY;
 
@@ -1588,17 +1592,22 @@ void audioHoriSplitVolLED(unsigned long stepMS, double leftRMS, double rightRMS)
     // There's no need to handle resets since this is a instantanious effect
 
     // Calculate volumes
-    double partialCol[2];
+    double partialCol[2]; // Stores the number of columns to be illuminated per channel
     partialCol[0] = leftRMS * NUM_COL * SCALING;
     partialCol[1] = rightRMS * NUM_COL * SCALING;
 
     ledlevel_t cols[NUM_COL];
     for (ledInd_t i = 0; i < NUM_COL; i++) cols[i] = BASE_INTENSITY;
 
+
+    // Upper mark, falls at a set rate
+    static unsigned long nextPeakMark[2] = {0}; // Records when to move upper mark down for each side
+    static ledInd_t peakLocation[2] = {0, NUM_COL - 1}; // Record upper mark for each side
+
     for (int i = 0; i < 2; i++) {
 
-        if (partialCol[i] > NUM_COL) partialCol[i] = NUM_COL;
-        ledInd_t fullCol = partialCol[i];
+        if (partialCol[i] > NUM_COL / 2) partialCol[i] = NUM_COL / 2;
+        ledInd_t fullCol = partialCol[i]; // Finds the last column to be fully illuminated (by flooring)
         partialCol[i] = partialCol[i] - fullCol; // Get remainder
 
         // Order into columns
@@ -1607,36 +1616,32 @@ void audioHoriSplitVolLED(unsigned long stepMS, double leftRMS, double rightRMS)
             const ledInd_t BASE = NUM_COL / 2 - 1;
             for (ledInd_t i = 0; i < fullCol; i++) cols[BASE - i] = PEAK_INTENSITY;
             cols[BASE - fullCol] = (PEAK_INTENSITY - BASE_INTENSITY) * partialCol[i];
+
+            if ((NUM_COL / 2) - fullCol < peakLocation[i]) {
+                peakLocation[i] = (NUM_COL / 2) - fullCol;
+                nextPeakMark[i] = currentTime + FALLDOWN_PERIOD;
+            }
         }
         else {
             // Right
             const ledInd_t BASE = NUM_COL / 2;
             for (ledInd_t i = 0; i < fullCol; i++) cols[i + BASE] = PEAK_INTENSITY;
             cols[fullCol + BASE + 1] = (PEAK_INTENSITY - BASE_INTENSITY) * partialCol[i];
-        }
 
-        // Upper mark, falls at a set rate
-        static unsigned long nextPeakMark[2] = {0};
-        static ledInd_t peakLocation[2] = {0};
+            if (fullCol + (NUM_COL / 2) + 1 >= peakLocation[i]) {
+                peakLocation[i] = fullCol + (NUM_COL / 2);
+                nextPeakMark[i] = currentTime + FALLDOWN_PERIOD;
+            }
+        }
 
         if (nextPeakMark[i] < currentTime) {
             nextPeakMark[i] = currentTime + FALLDOWN_PERIOD;
 
             if (i == 0) {
                 if (peakLocation[i] < (NUM_COL / 2)) peakLocation[i]++;
-
-                if ((NUM_COL / 2) - fullCol < peakLocation[i]) {
-                    peakLocation[i] = (NUM_COL / 2) - fullCol;
-                    nextPeakMark[i] = currentTime + FALLDOWN_PERIOD;
-                }
             }
             else {
                 if (peakLocation[i] > ((NUM_COL / 2) + 1)) peakLocation[i]--;
-
-                if (fullCol + (NUM_COL / 2) + 1 >= peakLocation[i]) {
-                    peakLocation[i] = fullCol + (NUM_COL / 2) + 1;
-                    nextPeakMark[i] = currentTime + FALLDOWN_PERIOD;
-                }
             }
         }
         cols[peakLocation[i]] = PEAK_INTENSITY;
