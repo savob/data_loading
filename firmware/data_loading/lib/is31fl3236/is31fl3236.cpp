@@ -160,6 +160,8 @@ int IS31FL3236::initialize() {
     if (setPWMfrequency(FrequencyIS31FL3236::KHz_22) == IS31_TRANSFER_FAIL) return IS31_TRANSFER_FAIL;
     if (globalEnable(true) == IS31_TRANSFER_FAIL) return IS31_TRANSFER_FAIL;
     if (updateChannelConfigurations() == IS31_TRANSFER_FAIL) return IS31_TRANSFER_FAIL;
+    if (updateDuties(true) == IS31_TRANSFER_FAIL) return IS31_TRANSFER_FAIL; 
+    // Force an update of the LED duties since this might be after the microcontroller is rebooted but not the driver chips
 
     return IS31_TRANSFER_SUCCESS;
 }
