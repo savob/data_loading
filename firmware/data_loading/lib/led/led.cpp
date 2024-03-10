@@ -53,7 +53,10 @@ const unsigned int NUM_GAMMA = sizeof(PWM_GAMMA) / sizeof(PWM_GAMMA[0]);
  * \note This is best called prior to the initialization the the drivers themselves
  */
 void initializeLED(IS31FL3236 drvrs[]) {
-    for (ledInd_t i = 0; i < NUM_LED; i++) LEDlevel[i] = 0;
+    for (ledInd_t i = 0; i < NUM_LED; i++) {
+        LEDlevel[i] = 0;
+        LEDgamma[i] = 0;
+    }
 
     // Configure the LED channels for each driver
     // This is done if we want to dim one set of LEDs relative to the other
