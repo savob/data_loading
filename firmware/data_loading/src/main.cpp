@@ -52,7 +52,6 @@ void setup() {
         Serial.println("AUDIO INPUT CONFIGURE ERROR");
         badSetup = true;
     }
-    delay(5);
 
     initializeLED(drivers);
     for (int i = 0; i < 2; i++) {
@@ -63,7 +62,6 @@ void setup() {
             Serial.println(" CONFIGURE ERROR");
             badSetup = true;
         }
-        delay(5);
     }
     
     bool touchSuccess = touch.initialize() == CAP1206_TRANSFER_SUCCESS;
@@ -72,7 +70,6 @@ void setup() {
         Serial.println("TOUCH SENSOR CONFIGURE ERROR");
         badSetup = true;
     }
-    delay(5);
 
     // Reboot if any configuration failed
     if (badSetup == true) {
