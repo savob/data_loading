@@ -5,7 +5,7 @@
 const int CAP1206_TRANSFER_FAIL = -1;
 const int CAP1206_TRANSFER_SUCCESS = 0;
 
-uint8_t defaultThresholds[] = {64, 64, 64, 64, 10, 10};
+uint8_t defaultThresholds[] = {60, 60, 60, 60, 10, 10};
 
 /**
  * \brief Construct a new CAP1206 object
@@ -576,20 +576,20 @@ int Cap1206::setButtonThreshold(uint8_t but, uint8_t thres) {
  * \param but Index of the button of interest
  * \return Return status of the transfer 
  */
-int Cap1206::readDelta(uint8_t* target, uint8_t but) {
+int Cap1206::readDelta(int8_t* target, uint8_t but) {
     switch (but) {
     case 1:
-        return readSingleReg(RegistersCap1206::DELTA_2, target);
+        return readSingleReg(RegistersCap1206::DELTA_2, (uint8_t*) target);
     case 2:
-        return readSingleReg(RegistersCap1206::DELTA_3, target);
+        return readSingleReg(RegistersCap1206::DELTA_3, (uint8_t*) target);
     case 3:
-        return readSingleReg(RegistersCap1206::DELTA_4, target);
+        return readSingleReg(RegistersCap1206::DELTA_4, (uint8_t*) target);
     case 4:
-        return readSingleReg(RegistersCap1206::DELTA_5, target);
+        return readSingleReg(RegistersCap1206::DELTA_5, (uint8_t*) target);
     case 5:
-        return readSingleReg(RegistersCap1206::DELTA_6, target);
+        return readSingleReg(RegistersCap1206::DELTA_6, (uint8_t*) target);
     default: // Default to reading for button 1
-        return readSingleReg(RegistersCap1206::DELTA_1, target);
+        return readSingleReg(RegistersCap1206::DELTA_1, (uint8_t*) target);
     }
 }
 
@@ -694,7 +694,7 @@ int Cap1206::initialize() {
                        false,   // Put chip into deep sleep
                        true)    // Clear interrupt flag
                        == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
-    if (setSensitivity(DeltaSensitivityCap1206::MUL_032, 
+    if (setSensitivity(DeltaSensitivityCap1206::MUL_002, 
                        BaseShiftCap1206::SACLE_256) 
                        == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     if (setConfig1(false,   // SMBus timeout enable

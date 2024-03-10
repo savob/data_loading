@@ -261,7 +261,7 @@ public:
     int setButtonThreshold(uint8_t but, uint8_t thres);
     int setButtonThresholds(uint8_t thres[]);
 
-    int readDelta(uint8_t* target, uint8_t but);
+    int readDelta(int8_t* target, uint8_t but);
     int setMultiTouchConfig(bool en, uint8_t blockNum);
 
     int readProductID(uint8_t* id);
