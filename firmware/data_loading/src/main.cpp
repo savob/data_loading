@@ -26,6 +26,10 @@ Cap1206 touch(&i2cBus);
 double left[64], right[64], leftRMS, rightRMS;
 
 void setup() {
+    // Immediately start watchdog in the event there's any glitch
+    mbed::Watchdog &watchdog = mbed::Watchdog::get_instance();
+    watchdog.start(WATCHDOG_TIMEOUT);
+
     bool badSetup = false; // Tracks if there was any failed configuration
 
     // Start with LED and button initialization to show system is live before potentially waiting for Serial
@@ -33,12 +37,9 @@ void setup() {
     for (int i = 0; i < 3; i++) {
         pinMode(statusLED[i], OUTPUT);
         digitalWrite(statusLED[i], HIGH);
-        delay(250);
+        delay(0.95 * WATCHDOG_TIMEOUT); // To not trigger watchdog
+        watchdog.kick();
     }
-
-    mbed::Watchdog &watchdog = mbed::Watchdog::get_instance();
-    watchdog.start(WATCHDOG_TIMEOUT);
-    watchdog.kick();
 
     Serial.begin(112500);
     // while (!Serial) {
