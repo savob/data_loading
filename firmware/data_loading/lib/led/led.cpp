@@ -1273,8 +1273,8 @@ void audioBalanceLED(unsigned long stepMS, double leftRMS, double rightRMS) {
     leftRMS = leftRMS * SCALING_RMS;
     rightRMS = rightRMS * SCALING_RMS;
 
-    // Overall RMS
-    float overallRMS = leftRMS + rightRMS;
+    // Overall RMS, unclamped to 1.0
+    float overallRMS = getOverallRMS(leftRMS, rightRMS, false);
 
     float center;                   // The center of the volume block
     center = rightRMS / overallRMS; // Find the location of the center, 1.0 if fully right, 0.0 for left
@@ -1480,11 +1480,8 @@ void audioVertVolLED(unsigned long stepMS, double leftRMS, double rightRMS, bool
     nextMark = currentTime + stepMS;
     // There's no need to handle resets since this is a instantanious effect
 
-    // Calculate overall RMS
-    double overallRMS = 0;
-    overallRMS = leftRMS * leftRMS + rightRMS * rightRMS;
-    overallRMS = sqrt(overallRMS / 2.0);
-    if (overallRMS > 1.0) overallRMS = 1.0;
+    // Overall RMS, clamp to 1
+    double overallRMS = getOverallRMS(leftRMS, rightRMS, true);
 
     // Calculate volume
     double partialRow = overallRMS * NUM_ROW * SCALING;
@@ -1504,7 +1501,7 @@ void audioVertVolLED(unsigned long stepMS, double leftRMS, double rightRMS, bool
 
     if (fullRow >= peakLocation) {
         peakLocation = fullRow + 1;
-        if (peakLocation >= NUM_ROW - 1) peakLocation = NUM_ROW - 1;
+        if (peakLocation > NUM_ROW - 1) peakLocation = NUM_ROW - 1;
         nextPeakMark = currentTime + FALLDOWN_PERIOD;
     }
 
@@ -1547,11 +1544,8 @@ void audioHoriVolLED(unsigned long stepMS, double leftRMS, double rightRMS, bool
     nextMark = currentTime + stepMS;
     // There's no need to handle resets since this is a instantanious effect
 
-    // Calculate overall RMS
-    double overallRMS = 0;
-    overallRMS = leftRMS * leftRMS + rightRMS * rightRMS;
-    overallRMS = sqrt(overallRMS / 2.0);
-    if (overallRMS > 1.0) overallRMS = 1.0;
+    // Calculate overall RMS, clamped to 1
+    double overallRMS = getOverallRMS(leftRMS, rightRMS, true);
 
     // Calculate volume
     double partialCol = overallRMS * NUM_COL * SCALING;
@@ -1670,4 +1664,19 @@ void audioHoriSplitVolLED(unsigned long stepMS, double leftRMS, double rightRMS)
     }
 
     paintColumns(cols);
+}
+
+/**
+ * \brief Calculate the Overall RMS
+ * 
+ * \param left Left channel RMS (0 to 1)
+ * \param right Right channel RMS (0 to 1)
+ * \param clamp True if we want to clamp output RMS to 1
+ * \return Overall RMS, clamped to 1.0 if requested
+ */
+float getOverallRMS(float left, float right, bool clamp = true) {
+    float overall = left + right;
+    // Clamp if needed
+    if (clamp && (overall > 1)) overall = 1.0; 
+    return overall;
 }

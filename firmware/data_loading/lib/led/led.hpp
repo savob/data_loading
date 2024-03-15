@@ -76,4 +76,6 @@ void audioSplitSpectrumSpinLED(unsigned long stepMS, double left[], double right
 void audioVertVolLED(unsigned long stepMS, double leftRMS, double rightRMS, bool bottomToTop = true);
 void audioHoriVolLED(unsigned long stepMS, double leftRMS, double rightRMS, bool leftToRight = true);
 void audioHoriSplitVolLED(unsigned long stepMS, double leftRMS, double rightRMS);
+
+float getOverallRMS(float left, float right, bool clamp = true);
 #endif
