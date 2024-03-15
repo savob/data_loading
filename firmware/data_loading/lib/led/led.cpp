@@ -1242,26 +1242,21 @@ void audioUniformLED(unsigned long stepMS, double leftRMS, double rightRMS) {
 }
 
 /**
- * \brief Tracks the audio balancing left to right
+ * \brief Tracks the audio balancing left to right with a block
  * 
  * \param stepMS Time between updates
  * \param leftRMS RMS of left audio channel (should be between 0 and 1)
  * \param rightRMS RMS of right audio channel (should be between 0 and 1)
- * 
- * \note Need to work on this, it isn't too nice or notable right now.
- * \note Hence why there are all the `Serial.print()`s left in.
  */
 void audioBalanceLED(unsigned long stepMS, double leftRMS, double rightRMS) {
-    const double SCALING = 7.0;
+    // When adjusting these constants adjust them in this order: scaling -> width -> exaggerate
+    const float SCALING_RMS =  8.0; // RMS scaling
+    const float EXAGGERATE  =  2.0; // How much to exaggerate the stereo imbalance
+    const float BLOCK_WIDTH = 10.0; // Width of block for volume (columns)
 
-    // Scale and clamp intensities
-    leftRMS = leftRMS * SCALING;
-    rightRMS = rightRMS * SCALING;
-
-    // Serial.print(leftRMS, 3);
-    // Serial.print(" ");
-    // Serial.print(rightRMS, 3);
-    // Serial.print(" | ");
+    // LED gamma level extremes
+    const ledlevel_t BASE_LEVEL = 10;
+    const ledlevel_t PEAK_LEVEL = 63;
 
     static unsigned long nextMark = 0;      // Marks next time to adjust brightness
     unsigned long currentTime = millis();
@@ -1273,18 +1268,45 @@ void audioBalanceLED(unsigned long stepMS, double leftRMS, double rightRMS) {
 
     // Perform level rule to interpolate values between edges
     ledlevel_t colMag[NUM_COL];
-    const float GRADIENT = (rightRMS - leftRMS) / (float)(NUM_COL - 1);
-    for (int i = 0; i < NUM_COL; i++) {
-        float temp;
-        temp = (GRADIENT * i) + leftRMS;
 
-        if (temp >= 1.0) temp = 0.999; // Clamp
+    // Scale and clamp intensities
+    leftRMS = leftRMS * SCALING_RMS;
+    rightRMS = rightRMS * SCALING_RMS;
 
-        colMag[i] = temp * NUM_GAMMA;
-        // Serial.print(colMag[i], 5);
-        // Serial.print("\t");
-    }
-    // Serial.println("");
+    // Overall RMS
+    float overallRMS = leftRMS + rightRMS;
+
+    float center;                   // The center of the volume block
+    center = rightRMS / overallRMS; // Find the location of the center, 1.0 if fully right, 0.0 for left
+    center = center - 0.5;          // Center around 0 prior to exaggeration
+    center = center * EXAGGERATE;
+    if (center < -0.5) center = -0.5;
+    else if (center > 0.5) center = 0.5;
+
+    // Place center so that at full volume it's not clipped at full volume
+    const float BLOCK_SPAN = ((float)NUM_COL - BLOCK_WIDTH); // Width of span for block "motion"
+    center = center * BLOCK_SPAN;
+    center = center + 0.5 * NUM_COL; // Center it for the columns
+
+    // Plot out the block characteristics
+    float curBlockWidth;                                        // Current block width
+    curBlockWidth = BLOCK_WIDTH * overallRMS;
+    if (curBlockWidth > BLOCK_WIDTH) curBlockWidth = BLOCK_WIDTH;
+    float blockEdgeLevel = curBlockWidth - (int)curBlockWidth;  // Find luminosity for edges of block
+    if (blockEdgeLevel == 0.0) blockEdgeLevel = 1.0;            // If the block is full we'll get a zero, handle
+    blockEdgeLevel = (PEAK_LEVEL - BASE_LEVEL) * blockEdgeLevel;// Derive level in range
+    blockEdgeLevel = BASE_LEVEL + (ledlevel_t)blockEdgeLevel;   // Convert to proper lighting level
+    ledInd_t blockStart = center - 0.5 * curBlockWidth;
+    ledInd_t blockEnd = center + 0.5 * curBlockWidth;
+
+    // Paint the block over the base level
+    for (int i = 0; i < NUM_COL; i++) colMag[i] = BASE_LEVEL;
+    for (int i = blockStart + 1; i < blockEnd; i++) colMag[i] = PEAK_LEVEL;
+
+    // Overwrite extremes
+    colMag[blockStart] = blockEdgeLevel;
+    colMag[blockEnd] = blockEdgeLevel;
+
     paintColumns(colMag);
 }
 
