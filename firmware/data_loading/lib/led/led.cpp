@@ -1674,7 +1674,7 @@ void audioHoriSplitVolLED(unsigned long stepMS, double leftRMS, double rightRMS)
  * \param clamp True if we want to clamp output RMS to 1
  * \return Overall RMS, clamped to 1.0 if requested
  */
-float getOverallRMS(float left, float right, bool clamp = true) {
+float getOverallRMS(float left, float right, bool clamp) {
     float overall = left + right;
     // Clamp if needed
     if (clamp && (overall > 1)) overall = 1.0; 
