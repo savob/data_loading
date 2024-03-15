@@ -10,6 +10,9 @@
 // Duration for watchdog timer, must be sufficient for entire setup (specified in milliseconds)
 const u_int32_t WATCHDOG_TIMEOUT = 100; 
 
+// Period of inactivity (ms) to trigger recalibration on capacitance sensor
+const unsigned long TOUCH_RECALIBRATION_PERIOD = 10000UL; 
+
 const pin_size_t statusLED[] = {17, 18, 19}; // Status LEDs by index (last one is red)
 const pin_size_t button[] = {20, 21}; // User buttons by index
 
@@ -90,9 +93,29 @@ void setup() {
 void loop() {
     static bool sampleAudio = true; // Initialize as true so audio has data if its the default state
 
+    // Check pads
+    static unsigned long nextTouchRecalibration = 0;
     uint8_t pads = 0;
     touch.readSensors(&pads);
 
+    // Check if the periodic recalibration is needed if not catching touches
+    if (pads != 0) nextTouchRecalibration = millis() + TOUCH_RECALIBRATION_PERIOD;
+    if (millis() > nextTouchRecalibration) {
+        touch.setCalibrations(0x0F); // Recalibrate sensors
+
+        nextTouchRecalibration = millis() + TOUCH_RECALIBRATION_PERIOD;
+    }
+
+    // Print out sensor deltas, useful for checking calibration success
+    // for (int i = 0; i < 4; i++) {
+    //     int8_t temp = 0;
+    //     touch.readDelta(&temp, i);
+    //     SerialUSB.print(temp);
+    //     SerialUSB.print("\t");
+    // }
+    // SerialUSB.println("");
+
+    // Audio sampling if needed
     if (sampleAudio) readAudio(left, right, &leftRMS, &rightRMS);
 
     // LED FSMs usually take about 40 to 160 us to execute, peak at about 250
