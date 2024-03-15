@@ -11,7 +11,9 @@
 const u_int32_t WATCHDOG_TIMEOUT = 100; 
 
 // Period of inactivity (ms) to trigger recalibration on capacitance sensor
-const unsigned long TOUCH_RECALIBRATION_PERIOD = 10000UL; 
+const unsigned long TOUCH_RECALIBRATION_PERIOD  = 10000UL; 
+const unsigned long TOUCH_CHECK_PERIOD          =    10UL;  // Minimum period to poll the touch sensor (ms)
+// Touch check period should be at most half the cycle time set for the CAP1206 
 
 const pin_size_t statusLED[] = {17, 18, 19}; // Status LEDs by index (last one is red)
 const pin_size_t button[] = {20, 21}; // User buttons by index
@@ -94,25 +96,23 @@ void loop() {
     static bool sampleAudio = true; // Initialize as true so audio has data if its the default state
 
     // Check pads
-    static unsigned long nextTouchRecalibration = 0;
-    uint8_t pads = 0;
-    touch.readSensors(&pads);
+    uint8_t pads = 0; // Bit mask of pressed pads
+    static unsigned long nextTouchPoll = 0; // Marks next touch sensor polling
+    // Polling would not be needed if the alert/interrupt pin from the CAP1206 was connected to the RP2040
 
-    // Check if the periodic recalibration is needed if not catching touches
-    if (pads != 0) nextTouchRecalibration = millis() + TOUCH_RECALIBRATION_PERIOD;
-    if (millis() > nextTouchRecalibration) {
-        touch.setCalibrations(0x0F);
-        nextTouchRecalibration = millis() + TOUCH_RECALIBRATION_PERIOD;
+    if (millis() > nextTouchPoll) {
+        nextTouchPoll = millis() + TOUCH_CHECK_PERIOD;
+
+        static unsigned long nextTouchRecalibration = 0;
+        touch.readSensors(&pads);
+
+        // Check if the periodic recalibration is needed if not catching touches
+        if (pads != 0) nextTouchRecalibration = millis() + TOUCH_RECALIBRATION_PERIOD;
+        if (millis() > nextTouchRecalibration) {
+            touch.setCalibrations(0x0F);
+            nextTouchRecalibration = millis() + TOUCH_RECALIBRATION_PERIOD;
+        }
     }
-
-    // Print out sensor deltas, useful for checking calibration success
-    // for (int i = 0; i < 4; i++) {
-    //     int8_t temp = 0;
-    //     touch.readDelta(&temp, i);
-    //     SerialUSB.print(temp);
-    //     SerialUSB.print("\t");
-    // }
-    // SerialUSB.println("");
 
     // Audio sampling if needed
     if (sampleAudio) readAudio(left, right, &leftRMS, &rightRMS);
@@ -129,6 +129,5 @@ void loop() {
     if (((millis() / 500) % 2) == 1) digitalWrite(statusLED[0], HIGH);
     else digitalWrite(statusLED[0], LOW);
 
-    if (!sampleAudio) delayMicroseconds(2000); // Delay to ease sensor if not slowed by audio
     mbed::Watchdog::get_instance().kick(); // Update WDT to avoid unnecessary reboots
 }
