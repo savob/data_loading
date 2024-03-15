@@ -1330,20 +1330,25 @@ void filterSpectrum(double lIn[], double rIn[], double lOut[], double rOut[]) {
 
        This scheme is basically inadmissable for any meaningful processing but that's not what
        we're looking for here. Just pretty lights.
+
+       Some of the bottom buckets can be skipped using `SKIP_BOTTOM` since they generally idle with
+       a high values due to DC component influences from the FFT.
     */
-    const int LOWER_END = 8;
+    const int LOWER_END     = 8; // Number of sequencial bucket to use on the low end befor skipping buckets
+    const int SKIP_BOTTOM   = 2; // Number of low frequency buckets to discard
     
     for (int i = 0; i < LOWER_END; i++) {
-        lOut[i] = lIn[i];
-        rOut[i] = rIn[i];
+        lOut[i] = lIn[i + SKIP_BOTTOM];
+        rOut[i] = rIn[i + SKIP_BOTTOM];
     }
+
     for (int i = LOWER_END; i < (NUM_LED / 2); i++) {
         int newIndex;
-        newIndex = (i - LOWER_END) * 2;
+        newIndex = (i - (LOWER_END + SKIP_BOTTOM)) * 2;
         newIndex = newIndex + LOWER_END;
 
-        lOut[i] = lIn[newIndex];
-        rOut[i] = rIn[newIndex];
+        lOut[i] = lIn[newIndex + SKIP_BOTTOM];
+        rOut[i] = rIn[newIndex + SKIP_BOTTOM];
     }
 }
 
