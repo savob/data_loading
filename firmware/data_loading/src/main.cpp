@@ -101,8 +101,7 @@ void loop() {
     // Check if the periodic recalibration is needed if not catching touches
     if (pads != 0) nextTouchRecalibration = millis() + TOUCH_RECALIBRATION_PERIOD;
     if (millis() > nextTouchRecalibration) {
-        touch.setCalibrations(0x0F); // Recalibrate sensors
-
+        touch.setCalibrations(0x0F);
         nextTouchRecalibration = millis() + TOUCH_RECALIBRATION_PERIOD;
     }
 
@@ -130,5 +129,6 @@ void loop() {
     if (((millis() / 500) % 2) == 1) digitalWrite(statusLED[0], HIGH);
     else digitalWrite(statusLED[0], LOW);
 
+    if (!sampleAudio) delayMicroseconds(2000); // Delay to ease sensor if not slowed by audio
     mbed::Watchdog::get_instance().kick(); // Update WDT to avoid unnecessary reboots
 }
