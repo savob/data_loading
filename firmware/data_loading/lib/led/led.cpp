@@ -269,10 +269,10 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
         if (advanceState) state = ledFSMstates::BREATH;
 
         // Brightness statements for debugging
-        Serial.print("Gamma / PWM:\t");
-        Serial.print(level);
-        Serial.print("\t");
-        Serial.println(PWM_GAMMA[level]);
+        SerialUSB.print("Gamma / PWM:\t");
+        SerialUSB.print(level);
+        SerialUSB.print("\t");
+        SerialUSB.println(PWM_GAMMA[level]);
         delay(5);
         break;
     }

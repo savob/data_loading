@@ -219,7 +219,7 @@ int Cap1206::readSensors(uint8_t* target) {
             return CAP1206_TRANSFER_FAIL;
     }
 
-    // if (*target != 0) Serial.println(*target, BIN); // Output which button is pressed
+    // if (*target != 0) SerialUSB.println(*target, BIN); // Output which button is pressed
 
     // Need to clear interrupt to reset button states for next check
     // Needed to not register releases
@@ -695,7 +695,7 @@ int Cap1206::initialize() {
                        true)    // Clear interrupt flag
                        == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     if (setSensitivity(DeltaSensitivityCap1206::MUL_002, 
-                       BaseShiftCap1206::SACLE_256) 
+                       BaseShiftCap1206::SCALE_256) 
                        == CAP1206_TRANSFER_FAIL) return CAP1206_TRANSFER_FAIL;
     if (setConfig1(false,   // SMBus timeout enable
                    false,   // Disable digital noise ignoring feature

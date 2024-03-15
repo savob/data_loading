@@ -41,47 +41,47 @@ void setup() {
         watchdog.kick();
     }
 
-    Serial.begin(112500);
-    // while (!Serial) {
+    SerialUSB.begin(112500);
+    // while (!SerialUSB) {
     //     delay(10); // Wait for USB to open for debug messages
     //     watchdog.kick(); // Don't trigger watchdog while waiting
     // }
-    Serial.println("\n\nSTARTING DATA BOARD....");
+    SerialUSB.println("\n\nSTARTING DATA BOARD....");
 
-    if (setupAudio() == 0) Serial.println("AUDIO INPUT CONFIGURED SUCCESSFULLY");
+    if (setupAudio() == 0) SerialUSB.println("AUDIO INPUT CONFIGURED SUCCESSFULLY");
     else {
-        Serial.println("AUDIO INPUT CONFIGURE ERROR");
+        SerialUSB.println("AUDIO INPUT CONFIGURE ERROR");
         badSetup = true;
     }
 
     initializeLED(drivers);
     for (int i = 0; i < 2; i++) {
-        Serial.print("LED DRIVER ");
-        Serial.print(i);
-        if (drivers[i].initialize() == IS31_TRANSFER_SUCCESS) Serial.println(" CONFIGURED SUCCESSFULLY");
+        SerialUSB.print("LED DRIVER ");
+        SerialUSB.print(i);
+        if (drivers[i].initialize() == IS31_TRANSFER_SUCCESS) SerialUSB.println(" CONFIGURED SUCCESSFULLY");
         else {
-            Serial.println(" CONFIGURE ERROR");
+            SerialUSB.println(" CONFIGURE ERROR");
             badSetup = true;
         }
     }
     
     bool touchSuccess = touch.initialize() == CAP1206_TRANSFER_SUCCESS;
-    if (touchSuccess) Serial.println("TOUCH SENSOR CONFIGURED SUCCESSFULLY");
+    if (touchSuccess) SerialUSB.println("TOUCH SENSOR CONFIGURED SUCCESSFULLY");
     else {
-        Serial.println("TOUCH SENSOR CONFIGURE ERROR");
+        SerialUSB.println("TOUCH SENSOR CONFIGURE ERROR");
         badSetup = true;
     }
 
     // Reboot if any configuration failed
     if (badSetup == true) {
-        Serial.println("\nHOLDING FOR WATCHDOG REBOOT\n");
+        SerialUSB.println("\nHOLDING FOR WATCHDOG REBOOT\n");
         while (true) {
             delay(WATCHDOG_TIMEOUT);
             // Trap system here until watchdog reboot kicks in
         }
     }
 
-    Serial.println("\nLAUNCHING!\n");
+    SerialUSB.println("\nLAUNCHING!\n");
     for (int i = 0; i < 3; i++) digitalWrite(statusLED[i], LOW);
 
     watchdog.kick(); // Needed before main loop

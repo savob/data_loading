@@ -135,38 +135,38 @@ double normalizeFreqMag(double mag) {
  */
 void printSampling(bool left) {
     if (left == true) {
-        Serial.println("Left Data:");
+        SerialUSB.println("Left Data:");
         printVector(vReal_L, NUM_AUDIO_SAMPLES, SamplingScale::SCL_TIME);
         FFTleft.Windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
-        Serial.println("Left Weighed data:");
+        SerialUSB.println("Left Weighed data:");
         printVector(vReal_L, NUM_AUDIO_SAMPLES, SamplingScale::SCL_TIME);
         FFTleft.Compute(FFT_FORWARD);
-        Serial.println("Left Computed Real values:");
+        SerialUSB.println("Left Computed Real values:");
         printVector(vReal_L, NUM_AUDIO_SAMPLES, SamplingScale::SCL_INDEX);
-        Serial.println("Left Computed Imaginary values:");
+        SerialUSB.println("Left Computed Imaginary values:");
         printVector(vImag_L, NUM_AUDIO_SAMPLES, SamplingScale::SCL_INDEX);
         FFTleft.ComplexToMagnitude();
-        Serial.println("Left Computed magnitudes:");
+        SerialUSB.println("Left Computed magnitudes:");
         printVector(vReal_L, NUM_SPECTRUM, SamplingScale::SCL_FREQUENCY);
         double x = FFTleft.MajorPeak();
-        Serial.println(x, 6); //Print out what frequency is the most dominant.
+        SerialUSB.println(x, 6); //Print out what frequency is the most dominant.
     }
     else {
-        Serial.println("Right Data:");
+        SerialUSB.println("Right Data:");
         printVector(vReal_R, NUM_AUDIO_SAMPLES, SamplingScale::SCL_TIME);
         FFTleft.Windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
-        Serial.println("drivers[1].initialize();Right Weighed data:");
+        SerialUSB.println("drivers[1].initialize();Right Weighed data:");
         printVector(vReal_R, NUM_AUDIO_SAMPLES, SamplingScale::SCL_TIME);
         FFTleft.Compute(FFT_FORWARD);
-        Serial.println("Right Computed Real values:");
+        SerialUSB.println("Right Computed Real values:");
         printVector(vReal_R, NUM_AUDIO_SAMPLES, SamplingScale::SCL_INDEX);
-        Serial.println("Right Computed Imaginary values:");
+        SerialUSB.println("Right Computed Imaginary values:");
         printVector(vImag_R, NUM_AUDIO_SAMPLES, SamplingScale::SCL_INDEX);
         FFTleft.ComplexToMagnitude();
-        Serial.println("Right Computed magnitudes:");
+        SerialUSB.println("Right Computed magnitudes:");
         printVector(vReal_R, NUM_SPECTRUM, SamplingScale::SCL_FREQUENCY);
         double x = FFTright.MajorPeak();
-        Serial.println(x, 6); //Print out what frequency is the most dominant.
+        SerialUSB.println(x, 6); //Print out what frequency is the most dominant.
     }
 }
 
@@ -194,13 +194,13 @@ void printVector(double *vData, uint16_t bufferSize, SamplingScale scaleType) {
             abscissa = i;
             break;
         }
-        if (scaleType == SamplingScale::SCL_TIME) Serial.print(abscissa, 6);
-        else Serial.print(abscissa, 0);
+        if (scaleType == SamplingScale::SCL_TIME) SerialUSB.print(abscissa, 6);
+        else SerialUSB.print(abscissa, 0);
 
-        if (scaleType == SamplingScale::SCL_FREQUENCY) Serial.print("Hz");
-        Serial.print("\t");
+        if (scaleType == SamplingScale::SCL_FREQUENCY) SerialUSB.print("Hz");
+        SerialUSB.print("\t");
         
-        Serial.println(vData[i], 4);
+        SerialUSB.println(vData[i], 4);
     }
-    Serial.println();
+    SerialUSB.println();
 }

@@ -94,15 +94,15 @@ enum DeltaSensitivityCap1206 : uint8_t {
 };
 
 enum BaseShiftCap1206 : uint8_t {
-    SACLE_001           = 0x00,
-    SACLE_002           = 0x01,
-    SACLE_005           = 0x02,
-    SACLE_008           = 0x03,
-    SACLE_016           = 0x04,
-    SACLE_032           = 0x05,
-    SACLE_064           = 0x06,
-    SACLE_128           = 0x07,
-    SACLE_256           = 0x0F
+    SCALE_001           = 0x00,
+    SCALE_002           = 0x01,
+    SCALE_005           = 0x02,
+    SCALE_008           = 0x03,
+    SCALE_016           = 0x04,
+    SCALE_032           = 0x05,
+    SCALE_064           = 0x06,
+    SCALE_128           = 0x07,
+    SCALE_256           = 0x0F
 };
 
 enum MaxDurationcap1206 : uint8_t {
