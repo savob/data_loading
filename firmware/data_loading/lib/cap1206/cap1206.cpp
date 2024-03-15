@@ -5,7 +5,7 @@
 const int CAP1206_TRANSFER_FAIL = -1;
 const int CAP1206_TRANSFER_SUCCESS = 0;
 
-uint8_t defaultThresholds[] = {40, 40, 40, 40, 10, 10};
+uint8_t defaultThresholds[] = {50, 50, 50, 50, 10, 10};
 
 /**
  * \brief Construct a new CAP1206 object
