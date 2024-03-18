@@ -48,10 +48,12 @@ void setup() {
     }
 
     SerialUSB.begin(112500);
-    // while (!SerialUSB) {
-    //     delay(10); // Wait for USB to open for debug messages
-    //     watchdog.kick(); // Don't trigger watchdog while waiting
-    // }
+#ifdef DEBUG
+    while (!SerialUSB) {
+        delay(10); // Wait for USB to open for debug messages
+        watchdog.kick(); // Don't trigger watchdog while waiting
+    }
+#endif
     SerialUSB.println("\n\nSTARTING DATA BOARD....");
 
     if (setupAudio() == 0) SerialUSB.println("AUDIO INPUT CONFIGURED SUCCESSFULLY");
