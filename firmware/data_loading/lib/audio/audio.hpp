@@ -2,9 +2,10 @@
 #define AUDIO_HEADER
 
 #include <Arduino.h>
+#include "../../include/enumerators.h"
 
 int setupAudio();
-void readAudio(double leftMag[], double rightMag[], double* leftRMS, double* rightRMS);
+void readAudio(double leftMag[], double rightMag[], double* leftRMS, double* rightRMS, AudioProcessing type = AudioProcessing::SPECTRUM);
 double normalizeFreqMag(double mag);
 
 enum SamplingScale {

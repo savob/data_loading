@@ -45,13 +45,16 @@ int setupAudio() {
  * \param rightMag Location to record frequency magnitudes for right channel
  * \param leftRMS Location to record RMS of left channel
  * \param rightRMS Location to record RMS of right channel
+ * \param type Which level of analysis to perform (spectrum takes the most time)
  * 
  * \note All values are normalized such that they go from 0 to 1
  */
-void readAudio(double leftMag[], double rightMag[], double* leftRMS, double* rightRMS) {
+void readAudio(double leftMag[], double rightMag[], double* leftRMS, double* rightRMS, AudioProcessing type) {
     // Reset RMS
     *leftRMS = 0;
     *rightRMS = 0;
+
+    if (type == AudioProcessing::NO_AUDIO) return;
 
     // Sample collection
     // Since this is blocking for the 5ms needed, I've stuffed in other sample related math
@@ -81,6 +84,8 @@ void readAudio(double leftMag[], double rightMag[], double* leftRMS, double* rig
     *rightRMS = *rightRMS / (float)NUM_AUDIO_SAMPLES;
     *leftRMS = sqrt(*leftRMS);
     *rightRMS = sqrt(*rightRMS);
+
+    if (type == AudioProcessing::RMS_ONLY) return;
 
     // FFT Calculation (33ms)
     FFTright.Windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);

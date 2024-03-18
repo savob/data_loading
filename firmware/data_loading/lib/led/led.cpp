@@ -1,5 +1,6 @@
 #include <Arduino.h>
 
+#include "../../include/enumerators.h"
 #include "is31fl3236.hpp"
 #include "led.hpp"
 
@@ -134,8 +135,10 @@ void rotateLED(ledInd_t amount, bool clockwise) {
  * \param buttons State of the buttons
  * \param overrideState What state to put the LEDs into if overridden
  * \param override Override state?
+ * 
+ * \return What kind of audio processing is needed for the next cycle
  */
-bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double rRMS,
+AudioProcessing LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double rRMS,
             ledFSMstates overrideState, bool override) {
     static ledFSMstates state = ledFSMstates::SOLID;
     static ledFSMstates prevState = ledFSMstates::SOLID;
@@ -150,110 +153,94 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
     if (toggleUser) userControl = !userControl;
     if (toggleInvert) invertBrightness = !invertBrightness;
 
-    bool sampleAudio = false;   // Keeps track of if audio sampling is needed (slows looping)
+    // Keeps track of if audio sampling is needed (slows looping)
+    AudioProcessing sampleAudio = AudioProcessing::NO_AUDIO;   
     bool allowInversion = true; // Record whether a state allows colour inversion or not
 
     if (override) state = overrideState;
     switch (state) {
     case ledFSMstates::BREATH:
         breathingLED(5000);
-        sampleAudio = false;
         if (returnState) state = ledFSMstates::SOLID;
         if (advanceState) state = ledFSMstates::SPINNING;
         break;
     case ledFSMstates::SPINNING:
         spinningLED(5000, userControl);
-        sampleAudio = false;
         if (returnState) state = ledFSMstates::BREATH;
         if (advanceState) state = ledFSMstates::SWEEP;
         break;
     case ledFSMstates::SWEEP:
         sweepLED(500, 500, toggleUser);
-        sampleAudio = false;
         if (returnState) state = ledFSMstates::SPINNING;
         if (advanceState) state = ledFSMstates::SWAY;
         break;
     case ledFSMstates::SWAY:
         swayLED(500, 500, toggleUser);
-        sampleAudio = false;
         if (returnState) state = ledFSMstates::SWEEP;
         if (advanceState) state = ledFSMstates::WAVE_HORI;
         break;
     case ledFSMstates::WAVE_HORI:
         waveHorLED(3000, userControl);
-        sampleAudio = false;
         if (returnState) state = ledFSMstates::SWAY;
         if (advanceState) state = ledFSMstates::WAVE_VERT;
         break;
     case ledFSMstates::WAVE_VERT:
         waveVerLED(3000, userControl);
-        sampleAudio = false;
         if (returnState) state = ledFSMstates::WAVE_HORI;
         if (advanceState) state = ledFSMstates::CLOUD;
         break;
     case ledFSMstates::CLOUD:
         cloudLED(8);
-        sampleAudio = false;
         if (returnState) state = ledFSMstates::WAVE_VERT;
         if (advanceState) state = ledFSMstates::TRACKING;
         break;
     case ledFSMstates::TRACKING:
         trackingLED(8, 500, 2, 5);
-        sampleAudio = false;
         if (returnState) state = ledFSMstates::CLOUD;
         if (advanceState) state = ledFSMstates::BUMPS;
         break;
     case ledFSMstates::BUMPS:
         bumpsLED(10);
-        sampleAudio = false;
         if (returnState) state = ledFSMstates::TRACKING;
         if (advanceState) state = ledFSMstates::AUD_UNI;
         break;
     case ledFSMstates::AUD_UNI:
         audioUniformLED(10, lRMS, rRMS);
-        sampleAudio = true;
         if (returnState) state = ledFSMstates::BUMPS;
         if (advanceState) state = ledFSMstates::AUD_BALANCE;
         break;
     case ledFSMstates::AUD_BALANCE:
         audioBalanceLED(10, lRMS, rRMS);
-        sampleAudio = true;
         if (returnState) state = ledFSMstates::AUD_UNI;
         if (advanceState) state = ledFSMstates::AUD_HORI_SPECTRUM;
         break;
     case ledFSMstates::AUD_HORI_SPECTRUM:
         audioHoriSpectrumLED(10, lMag, rMag, userControl);
-        sampleAudio = true;
         if (returnState) state = ledFSMstates::AUD_BALANCE;
         if (advanceState) state = ledFSMstates::AUD_SPLIT;
         break;
     case ledFSMstates::AUD_SPLIT:
         audioSplitSpectrumLED(10, lMag, rMag, userControl);
-        sampleAudio = true;
         if (returnState) state = ledFSMstates::AUD_HORI_SPECTRUM;
         if (advanceState) state = ledFSMstates::AUD_SPLIT_SPIN;
         break;
     case ledFSMstates::AUD_SPLIT_SPIN:
         audioSplitSpectrumSpinLED(20, lMag, rMag, userControl);
-        sampleAudio = true;
         if (returnState) state = ledFSMstates::AUD_SPLIT;
         if (advanceState) state = ledFSMstates::AUD_VERT_VOL;
         break;
     case ledFSMstates::AUD_VERT_VOL:
         audioVertVolLED(20, lRMS, rRMS, userControl);
-        sampleAudio = true;
         if (returnState) state = ledFSMstates::AUD_SPLIT_SPIN;
         if (advanceState) state = ledFSMstates::AUD_HORI_VOL;
         break;
     case ledFSMstates::AUD_HORI_VOL:
         audioHoriVolLED(20, lRMS, rRMS, userControl);
-        sampleAudio = true;
         if (returnState) state = ledFSMstates::AUD_VERT_VOL;
         if (advanceState) state = ledFSMstates::AUD_HORI_SPLIT_VOL;
         break;
     case ledFSMstates::AUD_HORI_SPLIT_VOL:
         audioHoriSplitVolLED(20, lRMS, rRMS);
-        sampleAudio = true;
         if (returnState) state = ledFSMstates::AUD_HORI_VOL;
         if (advanceState) state = ledFSMstates::SOLID;
         break;
@@ -263,7 +250,6 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
         if (toggleUser && (level < (NUM_GAMMA - 1))) level++;
         if (toggleInvert && (level > 0)) level--;
         uniformLED(level);
-        sampleAudio = false;
         allowInversion = false; // Don't want inversion, using it for level control
         if (returnState) state = ledFSMstates::AUD_HORI_SPLIT_VOL;
         if (advanceState) state = ledFSMstates::BREATH;
@@ -285,7 +271,26 @@ bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double r
     // Handle inverting LED brightness as needed
     copyGammaIntoBuffer(invertBrightness && allowInversion);
 
-    return sampleAudio; // Let the main loop if we need audio samples
+    // Decide what audio processing is needed for the next cycle
+    // Uses a lot of "fall-through cases" to collect multiple states
+    switch (state) {
+    case ledFSMstates::AUD_HORI_SPECTRUM:
+    case ledFSMstates::AUD_SPLIT:
+    case ledFSMstates::AUD_SPLIT_SPIN:
+        sampleAudio = AudioProcessing::SPECTRUM;
+        break;
+    case ledFSMstates::AUD_UNI:
+    case ledFSMstates::AUD_BALANCE:
+    case ledFSMstates::AUD_VERT_VOL:
+    case ledFSMstates::AUD_HORI_VOL:
+    case ledFSMstates::AUD_HORI_SPLIT_VOL:
+        sampleAudio = AudioProcessing::RMS_ONLY;
+        break;
+    default: 
+        sampleAudio = AudioProcessing::NO_AUDIO;
+        break;
+    }
+    return sampleAudio;
 }
 
 /**

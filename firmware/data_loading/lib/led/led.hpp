@@ -2,6 +2,8 @@
 #define LED_HEADER
 
 #include <Arduino.h>
+
+#include "../../include/enumerators.h"
 #include "is31fl3236.hpp"
 
 typedef uint8_t ledlevel_t;
@@ -47,7 +49,7 @@ void initializeLED(IS31FL3236 drvrs[]);
 void remapLED(IS31FL3236 drvrs[]);
 void rotateLED(ledInd_t amount, bool clockwise = true);
 
-bool LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double rRMS,
+AudioProcessing LEDfsm(uint8_t buttons, double lMag[], double rMag[], double lRMS, double rRMS,
      ledFSMstates overrideState = ledFSMstates::SOLID, bool override = false);
 
 bool checkReset(unsigned long mark, unsigned long stepPeriod, unsigned long curTime);

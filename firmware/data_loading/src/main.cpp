@@ -3,6 +3,7 @@
 #include <Wire.h>
 
 #include "audio.hpp"
+#include "enumerators.h"
 #include "is31fl3236.hpp"
 #include "cap1206.hpp"
 #include "led.hpp"
@@ -93,7 +94,7 @@ void setup() {
 }
 
 void loop() {
-    static bool sampleAudio = true; // Initialize as true so audio has data if its the default state
+    static AudioProcessing sampleAudio = AudioProcessing::NO_AUDIO;
 
     // Check pads
     uint8_t pads = 0; // Bit mask of pressed pads
@@ -115,7 +116,7 @@ void loop() {
     }
 
     // Audio sampling if needed
-    if (sampleAudio) readAudio(left, right, &leftRMS, &rightRMS);
+    readAudio(left, right, &leftRMS, &rightRMS, sampleAudio);
 
     // LED FSMs usually take about 40 to 160 us to execute, peak at about 250
     sampleAudio = LEDfsm(pads, left, right, leftRMS, rightRMS); //, ledFSMstates::AUD_UNI, true);
